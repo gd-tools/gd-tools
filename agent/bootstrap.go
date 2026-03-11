@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/gd-tools/gd-tools/releases"
 )
 
 const (
-	FirstRunMarker   = ".gd-tools-first-run"
-	HetznerTokenName = ".hetzner.token"
+	FirstRunMarker = ".gd-tools-first-run"
 )
 
 func BootstrapTest(req *Request) bool {
-	path := GetRootDir(FirstRunMarker)
+	path := releases.GetRootDir(FirstRunMarker)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return true
 	}
@@ -29,7 +30,7 @@ func BootstrapHandler(req *Request, resp *Response) error {
 	}
 
 	firstRun := false
-	path := GetRootDir(FirstRunMarker)
+	path := releases.GetRootDir(FirstRunMarker)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		firstRun = true
 		cmds := []string{

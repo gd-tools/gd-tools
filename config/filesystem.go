@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/utils"
 )
 
 func (cfg *Config) DeployFilesystem() error {
@@ -26,7 +27,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	dataMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.GetToolsDir("data"),
+		Path:  releases.GetToolsDir("data"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -35,7 +36,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	certsMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.GetToolsDir("data", "certs"),
+		Path:  releases.GetToolsDir("data", "certs"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -44,7 +45,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	hooksMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.GetToolsDir("data", "hooks"),
+		Path:  releases.GetToolsDir("data", "hooks"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -53,7 +54,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	vmailMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.GetToolsDir("data", "vmail"),
+		Path:  releases.GetToolsDir("data", "vmail"),
 		Mode:  "0755",
 		User:  "vmail",
 		Group: "vmail",
@@ -62,7 +63,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	logsMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.GetToolsDir("logs"),
+		Path:  releases.GetToolsDir("logs"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -71,7 +72,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	sshMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.GetRootDir(".ssh"),
+		Path:  releases.GetRootDir(".ssh"),
 		Mode:  "0700",
 		User:  "root",
 		Group: "root",

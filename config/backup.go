@@ -7,9 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/templates"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/utils"
 )
 
 const (
@@ -35,8 +36,8 @@ func (bkup *Backup) CronLine() string {
 	return fmt.Sprintf("%d %d * * * root test -x %s && %s\n",
 		bkup.CronMinute,
 		bkup.CronHour,
-		agent.GetBinDir("bb.exec"),
-		agent.GetBinDir("bb.exec"),
+		releases.GetBinDir("bb.exec"),
+		releases.GetBinDir("bb.exec"),
 	)
 }
 
@@ -58,7 +59,7 @@ func (cfg *Config) DeployBackup() error {
 		}
 		privFile := agent.File{
 			Task:    "write",
-			Path:    agent.GetRootDir(".ssh", "id_rsa"),
+			Path:    releases.GetRootDir(".ssh", "id_rsa"),
 			Content: privContent,
 			Mode:    "0600",
 			User:    "root",
@@ -67,7 +68,7 @@ func (cfg *Config) DeployBackup() error {
 		req.AddFile(&privFile)
 		pubFile := agent.File{
 			Task:    "write",
-			Path:    agent.GetRootDir(".ssh", "id_rsa.pub"),
+			Path:    releases.GetRootDir(".ssh", "id_rsa.pub"),
 			Content: pubContent,
 			Mode:    "0600",
 			User:    "root",
@@ -75,7 +76,7 @@ func (cfg *Config) DeployBackup() error {
 		}
 		req.AddFile(&pubFile)
 	} else {
-		bkup.BorgRepo = agent.GetToolsDir("backup")
+		bkup.BorgRepo = releases.GetToolsDir("backup")
 		backupMkdir := agent.File{
 			Task:  "mkdir",
 			Path:  bkup.BorgRepo,
@@ -86,8 +87,8 @@ func (cfg *Config) DeployBackup() error {
 		req.AddFile(&backupMkdir)
 	}
 
-	bkup.DataDir = agent.GetToolsDir("data")
-	bkup.HookDir = agent.GetToolsDir("data", "hooks")
+	bkup.DataDir = releases.GetToolsDir("data")
+	bkup.HookDir = releases.GetToolsDir("data", "hooks")
 
 	bbFiles := []string{
 		"bb.check",
@@ -106,7 +107,7 @@ func (cfg *Config) DeployBackup() error {
 		}
 		file := agent.File{
 			Task:    "write",
-			Path:    agent.GetBinDir(name),
+			Path:    releases.GetBinDir(name),
 			Content: content,
 			Mode:    "0500",
 			User:    "root",
@@ -117,7 +118,7 @@ func (cfg *Config) DeployBackup() error {
 
 	cronFile := agent.File{
 		Task:    "write",
-		Path:    agent.GetEtcDir("cron.d/borg-backup"),
+		Path:    releases.GetEtcDir("cron.d/borg-backup"),
 		Content: []byte(bkup.CronLine()),
 		Mode:    "0644",
 		User:    "root",

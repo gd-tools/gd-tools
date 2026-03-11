@@ -1,10 +1,18 @@
 package config
 
 import (
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/php"
-	"github.com/railduino/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/php"
+	"github.com/gd-tools/gd-tools/templates"
 )
+
+func (cfg *Config) PhpFpmPoolPath(name string) string {
+	return releases.GetEtcDir("php", cfg.Baseline.PHP, "fpm", "pool.d", name+".conf")
+}
+
+func (cfg *Config) PhpFpmService() string {
+	return "php" + cfg.Baseline.PHP + "-fpm"
+}
 
 func (cfg *Config) DeployPHP() error {
 	cfg.Debug("Enter config/php.go")

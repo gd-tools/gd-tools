@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/railduino/gd-tools/config"
+	"github.com/gd-tools/gd-tools/config"
 	"github.com/urfave/cli/v2"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/railduino/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/releases"
 	"github.com/urfave/cli/v2"
 )
 

@@ -4,11 +4,11 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/config"
-	"github.com/railduino/gd-tools/email"
-	"github.com/railduino/gd-tools/releases"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/config"
+	"github.com/gd-tools/gd-tools/email"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
 
@@ -28,6 +28,10 @@ var Command = &cli.Command{
 		&cli.BoolFlag{
 			Name:  "update",
 			Usage: "update an existing Nextcloud instance",
+		},
+		&cli.StringFlag{
+			Name:  "version",
+			Usage: "desired Nextcloud version if not default",
 		},
 		&cli.StringFlag{
 			Name:  "password",
@@ -60,7 +64,7 @@ var Command = &cli.Command{
 
 func Run(c *cli.Context) error {
 	cfg, err := config.ReadConfig(c)
-	if err != nil {
+	if err != nil || cfg.Baseline == nil {
 		return err
 	}
 
@@ -70,29 +74,18 @@ func Run(c *cli.Context) error {
 	host := c.Args().Get(0)
 	domain := c.Args().Get(1)
 
-	catalog, err := releases.Load()
-	if err != nil {
-		return err
-	}
-	ncProd, ncRel, err := catalog.Get(agent.NamingNextcloud, "")
-	if err != nil {
-		return err
-	}
-
 	entry := agent.Nextcloud{
 		HostName:   host,
 		DomainName: domain,
-		Version:    ncProd.Default,
 		ServerFQDN: cfg.FQDN(),
-		Subdir:     c.String("subdir"),
 		Language:   cfg.Language,
 		Region:     cfg.Region,
+		Subdir:     c.String("subdir"),
 		Password:   c.String("password"),
 		InstanceID: c.String("instance"),
 		Salt:       c.String("salt"),
 		Secret:     c.String("secret"),
 		AdminEmail: c.String("admin"),
-		AppList:    []string{},
 	}
 	if entry.FQDN() == cfg.FQDN() {
 		return fmt.Errorf("cannot use the server name for Nextcloud")
@@ -106,6 +99,24 @@ func Run(c *cli.Context) error {
 		cfg.Sayf("Nextcloud '%s' was updated", entry.Name)
 		return nil
 	}
+
+	catalog, err := releases.Load()
+	if err != nil {
+		return err
+	}
+
+	version := c.String("version") // empty string for default
+	_, ncRel, err := catalog.Get(agent.NamingNextcloud, version)
+	if err != nil {
+		return err
+	}
+	entry.Version = ncRel.Name
+
+	baseline, err := catalog.GetBaseline(cfg.Baseline)
+	if err != nil {
+		return err
+	}
+	entry.PhpVersion = baseline.PHP
 
 	list, err := agent.LoadNextcloudList(nil)
 	if err != nil {

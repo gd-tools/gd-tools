@@ -7,20 +7,26 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"sort"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
 
 const (
-	ConfigName    = "config.json"
+	ConfigName    = "config"
+	ConfigFile    = ConfigName + ".json"
 	ConfigTimeout = 10
 )
 
 type Config struct {
-	Baseline string `json:"baseline"` // runtime generation: ubuntu-php-dovecot
+	BaselineName string `json:"baseline"` // runtime generation: ubuntu-php-dovecot
+
+	Catalog  *releases.Catalog  `json:"-"`
+	Baseline *releases.Baseline `json:"-"`
 
 	Verbose  bool           `json:"-"`
 	Quiet    bool           `json:"-"`
@@ -117,7 +123,7 @@ func (cfg *Config) FQDN() string {
 }
 
 func (cfg *Config) DHParamsPath() string {
-	return agent.GetEtcDir("apache2", utils.DHParamsName)
+	return releases.GetEtcDir("apache2", utils.DHParamsName)
 }
 
 func (cfg *Config) RootUser() string {
@@ -130,14 +136,6 @@ func (cfg *Config) FQDNdot() string {
 
 func (cfg *Config) DotFQDN() string {
 	return "." + cfg.HostName + "." + cfg.DomainName
-}
-
-func (cfg *Config) SieveBefore() string {
-	return agent.SieveBefore("")
-}
-
-func (cfg *Config) SieveAfter() string {
-	return agent.SieveAfter("")
 }
 
 func (cfg *Config) RsyncFlags() string {
@@ -177,17 +175,17 @@ func (cfg *Config) Close() {
 }
 
 func ReadConfig(c *cli.Context) (*Config, error) {
-	content, err := os.ReadFile(ConfigName)
+	content, err := os.ReadFile(ConfigFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("missing %s - are we in the correct dir?", ConfigName)
+			return nil, fmt.Errorf("missing %s - are we in the correct dir?", ConfigFile)
 		}
-		return nil, fmt.Errorf("failed to read %s: %w", ConfigName, err)
+		return nil, fmt.Errorf("failed to read %s: %w", ConfigFile, err)
 	}
 
 	var cfg Config
 	if err := json.Unmarshal(content, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal %s: %w", ConfigName, err)
+		return nil, fmt.Errorf("failed to unmarshal %s: %w", ConfigFile, err)
 	}
 
 	if c != nil {
@@ -199,6 +197,16 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 		cfg.SkipMX = c.Bool("skip-mx")
 		cfg.Port = c.String("port")
 		agent.SetAgentPort(cfg.Port)
+	}
+
+	cfg.Catalog, err = releases.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.Baseline, err = cfg.Catalog.GetBaseline(cfg.BaselineName)
+	if err != nil {
+		return nil, err
 	}
 
 	if cfg.HostName == "" {
@@ -307,16 +315,16 @@ func (cfg *Config) NewRequest() *agent.Request {
 func (cfg *Config) Save() error {
 	content, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", ConfigName, err)
+		return fmt.Errorf("failed to marshal %s: %w", ConfigFile, err)
 	}
 
-	existing, err := os.ReadFile(ConfigName)
+	existing, err := os.ReadFile(ConfigFile)
 	if err == nil && bytes.Equal(existing, content) {
 		return nil
 	}
 
-	if err := os.WriteFile(ConfigName, content, 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", ConfigName, err)
+	if err := os.WriteFile(ConfigFile, content, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", ConfigFile, err)
 	}
 	cfg.Say("config.json has been updated - please check")
 

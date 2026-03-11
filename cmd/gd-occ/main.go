@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/railduino/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/agent"
 	"github.com/urfave/cli/v2"
 )
 

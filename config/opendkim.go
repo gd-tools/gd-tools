@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/email"
-	"github.com/railduino/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/email"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
 )
 
 const (
@@ -23,7 +24,7 @@ func (cfg *Config) DeployOpenDKIM() error {
 
 	req := cfg.NewRequest()
 
-	dkimDir := agent.GetToolsDir("data", "opendkim")
+	dkimDir := releases.GetToolsDir("data", "opendkim")
 	dkimMkdir := agent.File{
 		Task:  "mkdir",
 		Path:  dkimDir,
@@ -100,7 +101,7 @@ func (cfg *Config) DeployOpenDKIM() error {
 	}
 	confFile := agent.File{
 		Task:    "write",
-		Path:    agent.GetEtcDir("opendkim.conf"),
+		Path:    releases.GetEtcDir("opendkim.conf"),
 		Content: confData,
 		Backup:  true,
 		Mode:    "0644",
@@ -110,7 +111,7 @@ func (cfg *Config) DeployOpenDKIM() error {
 
 	etcMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.GetEtcDir("opendkim"),
+		Path:  releases.GetEtcDir("opendkim"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -124,7 +125,7 @@ func (cfg *Config) DeployOpenDKIM() error {
 	}
 	trustedFile := agent.File{
 		Task:    "write",
-		Path:    agent.GetEtcDir("opendkim", "TrustedHosts"),
+		Path:    releases.GetEtcDir("opendkim", "TrustedHosts"),
 		Content: trustedData,
 		Mode:    "0644",
 		Service: "opendkim",
@@ -134,7 +135,7 @@ func (cfg *Config) DeployOpenDKIM() error {
 	keysData := strings.Join(keyTable, "\n") + "\n"
 	keysFile := agent.File{
 		Task:    "write",
-		Path:    agent.GetEtcDir("opendkim", "KeyTable"),
+		Path:    releases.GetEtcDir("opendkim", "KeyTable"),
 		Content: []byte(keysData),
 		Mode:    "0644",
 		Service: "opendkim",
@@ -144,7 +145,7 @@ func (cfg *Config) DeployOpenDKIM() error {
 	signingData := strings.Join(signingTable, "\n") + "\n"
 	signingFile := agent.File{
 		Task:    "write",
-		Path:    agent.GetEtcDir("opendkim", "SigningTable"),
+		Path:    releases.GetEtcDir("opendkim", "SigningTable"),
 		Content: []byte(signingData),
 		Mode:    "0644",
 		Service: "opendkim",

@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/releases"
 )
 
 // DownloadsTest checks if there is work to be done
@@ -63,12 +63,12 @@ func DownloadsHandler(req *Request, resp *Response) error {
 				"-o", "root",
 				"-g", "root",
 				path,
-				GetBinDir(dwn.Binary),
+				releases.GetBinDir(dwn.Binary),
 			)
 			if err != nil {
 				return err
 			}
-			resp.Sayf("copied %s to %s", path, GetBinDir(dwn.Binary))
+			resp.Sayf("copied %s to %s", path, releases.GetBinDir(dwn.Binary))
 		}
 	}
 

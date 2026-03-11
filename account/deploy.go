@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/railduino/gd-tools/config"
-	"github.com/railduino/gd-tools/email"
+	"github.com/gd-tools/gd-tools/config"
+	"github.com/gd-tools/gd-tools/email"
 	"github.com/urfave/cli/v2"
 )
 

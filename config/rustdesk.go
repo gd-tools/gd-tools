@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/releases"
-	"github.com/railduino/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
 )
 
 func LoadRustDesk() (*agent.RustDesk, error) {

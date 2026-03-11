@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/railduino/gd-tools/config"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/config"
+	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
 

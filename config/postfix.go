@@ -8,10 +8,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/email"
-	"github.com/railduino/gd-tools/templates"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/email"
+	"github.com/gd-tools/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/utils"
 )
 
 const (

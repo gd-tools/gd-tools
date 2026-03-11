@@ -3,8 +3,7 @@ package releases
 import (
 	"fmt"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/utils"
 )
 
 // Baseline describes the platform runtime environment (for recovery).
@@ -19,9 +18,9 @@ type Baseline struct {
 
 // Release describes one specific release entry in the catalog.
 type Release struct {
-	Number   string         `json:"number"`
-	Series   string         `json:"series,omitempty"`
-	Download agent.Download `json:"download"`
+	Number   string   `json:"number"`
+	Series   string   `json:"series,omitempty"`
+	Download Download `json:"download"`
 }
 
 // Product describes a given product (like Nextcloud, WordPress, etc.).
@@ -49,6 +48,11 @@ func (c *Catalog) GetBaseline(name string) (*Baseline, error) {
 		}
 	}
 	return nil, fmt.Errorf("baseline %q not found", name)
+}
+
+// GetPhpPoolPath returns the php-fpm pool for the current baseline.
+func (bl *Baseline) GetPhpPoolPath() string {
+	return "TODO" // /etc/phpx.x/fpm ...
 }
 
 // Get returns a specific release for one product.

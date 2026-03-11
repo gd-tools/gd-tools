@@ -7,13 +7,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/releases"
-	"github.com/railduino/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
 )
 
 const (
-	OCISName = "ocis.json"
+	OCISName = "ocis"
+	OCISFile = OCISName + ".json"
 )
 
 type OCIS struct {
@@ -32,11 +33,11 @@ func (oc *OCIS) FQDN() string {
 }
 
 func (oc *OCIS) ExecPath() string {
-	return agent.GetBinDir("ocis")
+	return releases.GetBinDir("ocis")
 }
 
 func (oc *OCIS) RootDir(paths ...string) string {
-	rootDir := agent.GetToolsDir("data", "ocis")
+	rootDir := releases.GetToolsDir("data", "ocis")
 	if len(paths) == 0 {
 		return rootDir
 	}
@@ -64,25 +65,25 @@ func (oc *OCIS) ClientDir(paths ...string) string {
 }
 
 func (oc *OCIS) CertDir() string {
-	return agent.GetToolsDir("data", "certs", oc.FQDN())
+	return releases.GetToolsDir("data", "certs", oc.FQDN())
 }
 
 func (oc *OCIS) LogsDir() string {
-	return agent.GetToolsDir("logs", "ocis")
+	return releases.GetToolsDir("logs", "ocis")
 }
 
 func LoadOCIS() (*OCIS, error) {
-	content, err := os.ReadFile(OCISName)
+	content, err := os.ReadFile(OCISFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil // OCIS is not installed
 		}
-		return nil, fmt.Errorf("failed to read %s: %w", OCISName, err)
+		return nil, fmt.Errorf("failed to read %s: %w", OCISFile, err)
 	}
 
 	var oc OCIS
 	if err := json.Unmarshal(content, &oc); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal %s: %w", OCISName, err)
+		return nil, fmt.Errorf("failed to unmarshal %s: %w", OCISFile, err)
 	}
 
 	return &oc, nil
@@ -91,16 +92,16 @@ func LoadOCIS() (*OCIS, error) {
 func (oc *OCIS) Save() error {
 	content, err := json.MarshalIndent(oc, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", OCISName, err)
+		return fmt.Errorf("failed to marshal %s: %w", OCISFile, err)
 	}
 
-	existing, err := os.ReadFile(OCISName)
+	existing, err := os.ReadFile(OCISFile)
 	if err == nil && bytes.Equal(existing, content) {
 		return nil
 	}
 
-	if err := os.WriteFile(OCISName, content, 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", OCISName, err)
+	if err := os.WriteFile(OCISFile, content, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", OCISFile, err)
 	}
 
 	return nil
@@ -153,19 +154,15 @@ func (cfg *Config) DeployOCIS(oc *OCIS) error {
 func (cfg *Config) OCISDownload(oc *OCIS) error {
 	req := cfg.NewRequest()
 
-	cat, err := releases.Load()
+	_, ocRel, err := cfg.Catalog.Get("ocis", oc.Version)
 	if err != nil {
 		return err
 	}
-	_, rel, err := cat.Get("ocis", oc.Version)
-	if err != nil {
-		return err
-	}
-	if rel.Download.Binary == "" {
+	if ocRel.Download.Binary == "" {
 		return fmt.Errorf("missing Binary in OCIS download")
 	}
 
-	req.Downloads = append(req.Downloads, &rel.Download)
+	req.Downloads = append(req.Downloads, &ocRel.Download)
 
 	if err := req.Send(); err != nil {
 		return err
@@ -296,7 +293,7 @@ func (cfg *Config) OCISService(oc *OCIS) error {
 
 	file := agent.File{
 		Task:    "write",
-		Path:    agent.GetEtcDir("systemd", "system", "ocis.service"),
+		Path:    releases.GetEtcDir("systemd", "system", "ocis.service"),
 		Content: content,
 		Mode:    "0644",
 		Service: "ocis",

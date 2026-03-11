@@ -2,13 +2,14 @@ package agent
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"encoding/base64"
+	"github.com/gd-tools/gd-tools/releases"
 )
 
 const (
@@ -24,7 +25,7 @@ type RustDesk struct {
 	PrivateB64 string `json:"private_b64,omitempty"`
 	PublicKey  string `json:"public_key,omitempty"`
 
-	Download *Download `json:"-"`
+	Download *releases.Download `json:"-"`
 }
 
 func (rd *RustDesk) FQDN() string {
@@ -59,11 +60,11 @@ func (rd *RustDesk) SetPublic(s string) {
 
 // This is for mount checking
 func (rd *RustDesk) ToolsDir() string {
-	return GetToolsDir()
+	return releases.GetToolsDir()
 }
 
 func (rd *RustDesk) DataDir(paths ...string) string {
-	root := GetToolsDir("data", "rustdesk")
+	root := releases.GetToolsDir("data", "rustdesk")
 	if len(paths) == 0 {
 		return root
 	}
@@ -71,27 +72,27 @@ func (rd *RustDesk) DataDir(paths ...string) string {
 }
 
 func (rd *RustDesk) LogsDir(paths ...string) string {
-	root := GetToolsDir("logs", "rustdesk")
+	root := releases.GetToolsDir("logs", "rustdesk")
 	if len(paths) == 0 {
 		return root
 	}
 	return filepath.Join(append([]string{root}, paths...)...)
 }
 
-// The following functions are used on the development system
+// The following functions are used on the development workstation
 func (rd *RustDesk) Save() error {
 	content, err := json.MarshalIndent(rd, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", RustDeskName, err)
+		return fmt.Errorf("failed to marshal %s: %w", RustDeskFile, err)
 	}
 
-	existing, err := os.ReadFile(RustDeskName)
+	existing, err := os.ReadFile(RustDeskFile)
 	if err == nil && bytes.Equal(existing, content) {
 		return nil
 	}
 
-	if err := os.WriteFile(RustDeskName, content, 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", RustDeskName, err)
+	if err := os.WriteFile(RustDeskFile, content, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", RustDeskFile, err)
 	}
 
 	return nil

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/gd-tools/gd-tools/releases"
 )
 
 const (
@@ -20,24 +22,25 @@ type Request struct {
 	Quiet   bool      `json:"-"`
 	Dry     bool      `json:"-"`
 
-	Hello     string      `json:"hello,omitempty"`
-	FQDN      string      `json:"fqdn,omitempty"`
-	TimeZone  string      `json:"time_zone,omitempty"`
-	Language  string      `json:"language,omitempty"`
-	Region    string      `json:"region,omitempty"`
-	SwapSize  string      `json:"swap_size,omitempty"`
-	PrivRSA   []byte      `json:"priv_rsa,omitempty"`
-	PublRSA   []byte      `json:"publ_rsa,omitempty"`
-	Packages  []string    `json:"packages,omitempty"`
-	Upgrade   bool        `json:"upgrade,omitempty"`
-	SysAdmin  string      `json:"sys_admin,omitempty"`
-	RedisPort int         `json:"redis_port,omitempty"`
-	Mounts    []*Mount    `json:"mounts,omitempty"`
-	Users     []*User     `json:"users,omitempty"`
-	Files     []*File     `json:"files,omitempty"`
-	Downloads []*Download `json:"downloads,omitempty"`
-	SQL       []string    `json:"sql,omitempty"`
-	MySQLs    []*MySQL    `json:"mysqls,omitempty"`
+	Hello     string   `json:"hello,omitempty"`
+	FQDN      string   `json:"fqdn,omitempty"`
+	TimeZone  string   `json:"time_zone,omitempty"`
+	Language  string   `json:"language,omitempty"`
+	Region    string   `json:"region,omitempty"`
+	SwapSize  string   `json:"swap_size,omitempty"`
+	PrivRSA   []byte   `json:"priv_rsa,omitempty"`
+	PublRSA   []byte   `json:"publ_rsa,omitempty"`
+	Packages  []string `json:"packages,omitempty"`
+	Upgrade   bool     `json:"upgrade,omitempty"`
+	SysAdmin  string   `json:"sys_admin,omitempty"`
+	RedisPort int      `json:"redis_port,omitempty"`
+	Mounts    []*Mount `json:"mounts,omitempty"`
+	Users     []*User  `json:"users,omitempty"`
+	Files     []*File  `json:"files,omitempty"`
+	SQL       []string `json:"sql,omitempty"`
+	MySQLs    []*MySQL `json:"mysqls,omitempty"`
+
+	Downloads []*releases.Download `json:"downloads,omitempty"`
 
 	Checks   []string `json:"checks,omitempty"`
 	Services []string `json:"services,omitempty"` // services to (re)start

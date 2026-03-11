@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/php"
-	"github.com/railduino/gd-tools/releases"
-	"github.com/railduino/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
 )
 
 func (cfg *Config) DeployNextcloud(nc *agent.Nextcloud) error {
@@ -17,22 +16,14 @@ func (cfg *Config) DeployNextcloud(nc *agent.Nextcloud) error {
 	}
 	cfg.Debugf("Enter config/nextcloud.go (%s)", nc.FQDN())
 
-	cat, err := releases.Load()
+	_, ncRel, err := cfg.Catalog.Get("nextcloud", nc.Version)
 	if err != nil {
 		return err
 	}
-	_, rel, err := cat.Get("nextcloud", nc.Version)
-	if err != nil {
-		return err
-	}
-	if rel.Download.Directory == "" {
+	if ncRel.Download.Directory == "" {
 		return fmt.Errorf("missing Directory in Nextcloud download")
 	}
-	nc.Download = &rel.Download
-
-	if nc.FQDN() == cfg.FQDN() {
-		return fmt.Errorf("cannot use the server name for Nextcloud")
-	}
+	nc.Download = &ncRel.Download
 
 	if err := cfg.NextcloudDownload(nc); err != nil {
 		return err
@@ -41,7 +32,7 @@ func (cfg *Config) DeployNextcloud(nc *agent.Nextcloud) error {
 		return err
 	}
 
-	if err := cfg.NextcloudLogsDir(nc); err != nil {
+	if err := cfg.NextcloudMkDirs(nc); err != nil {
 		return err
 	}
 
@@ -86,8 +77,8 @@ func (cfg *Config) DeployNextcloud(nc *agent.Nextcloud) error {
 	}
 
 	// if all went well, install the occ-<name> command
-	occSrc := agent.GetBinDir("gd-occ")
-	occDst := agent.GetBinDir("occ-" + nc.Name)
+	occSrc := releases.GetBinDir("gd-occ")
+	occDst := releases.GetBinDir("occ-" + nc.Name)
 	if _, err := cfg.LocalCommand(
 		"rsync",
 		cfg.RsyncFlags(),
@@ -120,7 +111,7 @@ func (cfg *Config) NextcloudExtract(nc *agent.Nextcloud) error {
 
 	extract := agent.File{
 		Task:   "extract",
-		Path:   agent.GetDownloadsDir(nc.Download.Filename),
+		Path:   releases.GetDownloadsDir(nc.Download.Filename),
 		Target: nc.RootDir(),
 		Mode:   "0755",
 		User:   "root",
@@ -135,17 +126,8 @@ func (cfg *Config) NextcloudExtract(nc *agent.Nextcloud) error {
 	return nil
 }
 
-func (cfg *Config) NextcloudLogsDir(nc *agent.Nextcloud) error {
+func (cfg *Config) NextcloudMkDirs(nc *agent.Nextcloud) error {
 	req := cfg.NewRequest()
-
-	logsMkdir := agent.File{
-		Task:  "mkdir",
-		Path:  nc.LogsDir(),
-		Mode:  "0755",
-		User:  "root",
-		Group: "root",
-	}
-	req.AddFile(&logsMkdir)
 
 	dataMkdir := agent.File{
 		Task:  "mkdir",
@@ -155,6 +137,15 @@ func (cfg *Config) NextcloudLogsDir(nc *agent.Nextcloud) error {
 		Group: "www-data",
 	}
 	req.AddFile(&dataMkdir)
+
+	logsMkdir := agent.File{
+		Task:  "mkdir",
+		Path:  nc.LogsDir(),
+		Mode:  "0755",
+		User:  "root",
+		Group: "root",
+	}
+	req.AddFile(&logsMkdir)
 
 	if err := req.Send(); err != nil {
 		return err
@@ -272,7 +263,7 @@ func (cfg *Config) NextcloudSetupPool(nc *agent.Nextcloud) error {
 		return err
 	}
 
-	poolPath := php.GetPhpFpmPoolPath(0, nc.Name)
+	poolPath := cfg.PhpFpmPoolPath(0, nc.Name)
 	poolFile := agent.File{
 		Task:    "write",
 		Path:    poolPath,
@@ -280,7 +271,7 @@ func (cfg *Config) NextcloudSetupPool(nc *agent.Nextcloud) error {
 		Mode:    "0644",
 		User:    "root",
 		Group:   "root",
-		Service: php.GetPhpFpmService(),
+		Service: cfg.PhpFpmService(),
 	}
 	req.AddFile(&poolFile)
 

@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/config"
-	"github.com/railduino/gd-tools/setup"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/config"
+	"github.com/gd-tools/gd-tools/setup"
+	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
 
@@ -18,7 +18,7 @@ local configuration on the development workstation and does not directly modify
 the production server.
 
 For detailed documentation and usage examples, see:
-https://github.com/railduino/gd-tools/wiki/11-Update`
+https://github.com/gd-tools/gd-tools/wiki/11-Update`
 
 var Command = &cli.Command{
 	Name:        "update",

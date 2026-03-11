@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/email"
-	"github.com/railduino/gd-tools/php"
-	"github.com/railduino/gd-tools/releases"
-	"github.com/railduino/gd-tools/templates"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/email"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/utils"
 )
 
 type Roundcube struct {
@@ -21,7 +20,7 @@ type Roundcube struct {
 	Password   string
 	DesKey     string
 	DirName    string
-	Download   *agent.Download
+	Download   *releases.Download
 }
 
 func (rc *Roundcube) WebMail() string {
@@ -81,15 +80,16 @@ func (cfg *Config) DeployRoundcubeMap(sel map[string]bool) error {
 func (cfg *Config) DeployRoundcubeDomain(domain *email.Domain) error {
 	cfg.Debugf("Enter config/roundcube.go (%s)", domain.Name)
 
-	cat, err := releases.Load()
+	catalog, err := releases.Load()
 	if err != nil {
 		return err
 	}
-	_, rel, err := cat.Get("roundcube", cfg.Roundcube)
+	_, rcRel, err := catalog.Get("roundcube", "")
 	if err != nil {
 		return err
 	}
-	if rel.Download.Directory == "" {
+
+	if rcRel.Download.Directory == "" {
 		return fmt.Errorf("missing Directory in Roundcube download")
 	}
 

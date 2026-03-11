@@ -6,11 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-)
 
-// N.B. Some years from now, read the version from /etc/os-release
-const (
-	Ubuntu = "noble"
+	"github.com/gd-tools/gd-tools/releases"
 )
 
 type proStatusJSON struct {
@@ -19,7 +16,7 @@ type proStatusJSON struct {
 
 // PackagesTest checks if there is work to be done
 func PackagesTest(req *Request) bool {
-	marker := GetRootDir(FirstRunMarker)
+	marker := releases.GetRootDir(FirstRunMarker)
 	if _, err := os.Stat(marker); os.IsNotExist(err) {
 		return true
 	}
@@ -34,7 +31,7 @@ func PackagesHandler(req *Request, resp *Response) error {
 		return nil
 	}
 
-	marker := GetRootDir(FirstRunMarker)
+	marker := releases.GetRootDir(FirstRunMarker)
 	if _, err := os.Stat(marker); os.IsNotExist(err) {
 		return fmt.Errorf("missing %s - please deploy 01-bootstrap", marker)
 	}

@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/templates"
 )
 
 const (

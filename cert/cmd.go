@@ -25,7 +25,7 @@ var Describe = `The cert command manages ACME certificates.
 It scans project folders for "acme-certs/<domain>/" and operates on the found certificates.
 
 For detailed documentation and usage examples, see:
-https://github.com/railduino/gd-tools/wiki/XX-Cert`
+https://github.com/gd-tools/gd-tools/wiki/XX-Cert`
 
 var Command = &cli.Command{
 	Name:        "cert",

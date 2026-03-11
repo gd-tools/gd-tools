@@ -1,8 +1,8 @@
 package account
 
 import (
-	"github.com/railduino/gd-tools/config"
-	"github.com/railduino/gd-tools/domain"
+	"github.com/gd-tools/gd-tools/config"
+	"github.com/gd-tools/gd-tools/domain"
 	"github.com/urfave/cli/v2"
 )
 

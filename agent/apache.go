@@ -5,10 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/gd-tools/gd-tools/releases"
 )
 
 func GetApacheToolsDir(paths ...string) string {
-	toolsDir := GetToolsDir("data", "apache")
+	toolsDir := releases.GetToolsDir("data", "apache")
 	if len(paths) == 0 {
 		return toolsDir
 	}
@@ -16,7 +18,7 @@ func GetApacheToolsDir(paths ...string) string {
 }
 
 func GetApacheEtcDir(paths ...string) string {
-	etcDir := GetEtcDir("apache2")
+	etcDir := releases.GetEtcDir("apache2")
 	if len(paths) == 0 {
 		return etcDir
 	}

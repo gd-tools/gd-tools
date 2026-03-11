@@ -5,9 +5,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/railduino/gd-tools/config"
-	"github.com/railduino/gd-tools/email"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/config"
+	"github.com/gd-tools/gd-tools/email"
+	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
 

@@ -6,10 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/config"
-	"github.com/railduino/gd-tools/releases"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/config"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
 
@@ -25,7 +25,7 @@ Does not modify the production server (yet).
 Calling 'gdt setup' without arguments lists alternatives.
 
 For detailed documentation and usage examples, see:
-https://github.com/railduino/gd-tools/wiki/10-Setup`
+https://github.com/gd-tools/gd-tools/wiki/10-Setup`
 
 var (
 	FlagBaseline = &cli.StringFlag{
@@ -110,14 +110,14 @@ var Command = &cli.Command{
 }
 
 func Run(c *cli.Context) error {
-	cat, err := releases.Load()
+	catalog, err := releases.Load()
 	if err != nil {
 		return err
 	}
 
 	if c.NArg() == 0 {
 		fmt.Println("Avaliable baselines:")
-		for _, bl := range cat.Baselines {
+		for _, bl := range catalog.Baselines {
 			fmt.Printf("Baseline ....: %s\n", bl.Name)
 			fmt.Printf("  Ubuntu ....: %s\n", bl.Ubuntu)
 			fmt.Printf("  PHP .......: %s\n", bl.PHP)
@@ -125,6 +125,11 @@ func Run(c *cli.Context) error {
 			fmt.Println()
 		}
 		return nil
+	}
+
+	baseline, err := catalog.GetBaseline(c.String("baseline"))
+	if err != nil {
+		return err
 	}
 
 	basics, err := utils.ReadBasics()
@@ -139,9 +144,9 @@ func Run(c *cli.Context) error {
 	domain := c.Args().Get(1)
 
 	cfg := config.Config{
-		Baseline:        c.String("baseline"),
 		Verbose:         c.Bool("verbose"),
 		Dry:             c.Bool("dry"),
+		BaselineName:    baseline.Name,
 		TimeZone:        basics.TimeZone,
 		Language:        basics.Language,
 		Region:          basics.Region,

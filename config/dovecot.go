@@ -3,11 +3,28 @@ package config
 import (
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/email"
-	"github.com/railduino/gd-tools/templates"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/email"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/utils"
 )
+
+func (cfg *Config) SieveBefore(paths ...string) string {
+	sieve := releases.GetToolsDir("data", "sieve_before")
+	if len(paths) == 0 {
+		return sieve
+	}
+	return filepath.Join(append([]string{sieve}, paths...)...)
+}
+
+func (cfg *Config) SieveAfter(paths ...string) string {
+	sieve := releases.GetToolsDir("data", "sieve_after")
+	if len(paths) == 0 {
+		return sieve
+	}
+	return filepath.Join(append([]string{sieve}, paths...)...)
+}
 
 func (cfg *Config) Domains() ([]*email.Domain, error) {
 	domainList, _, err := email.GetDomains(nil)
@@ -28,7 +45,7 @@ func (cfg *Config) DeployDovecot() error {
 	}
 	cfg.Mailer = mailer
 
-	cfg.CertDir = agent.GetToolsDir("data", "certs", cfg.FQDN())
+	cfg.CertDir = releases.GetToolsDir("data", "certs", cfg.FQDN())
 
 	cfg.Password, err = utils.FetchPassword(20, "vmail", "db_password")
 	if err != nil {
@@ -82,7 +99,7 @@ func (cfg *Config) DovecotFiles() error {
 
 	beforeMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.SieveBefore(""),
+		Path:  cfg.SieveBefore(),
 		Mode:  "0755",
 		User:  "vmail",
 		Group: "vmail",
@@ -91,7 +108,7 @@ func (cfg *Config) DovecotFiles() error {
 
 	afterMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.SieveAfter(""),
+		Path:  cfg.SieveAfter(),
 		Mode:  "0755",
 		User:  "vmail",
 		Group: "vmail",
@@ -107,7 +124,7 @@ func (cfg *Config) DovecotFiles() error {
 		}
 		req.AddFile(&agent.File{
 			Task:    "write",
-			Path:    agent.SieveBefore(spamName),
+			Path:    cfg.SieveBefore(spamName),
 			Content: spamData,
 			Mode:    "0644",
 			User:    "vmail",
@@ -124,7 +141,7 @@ func (cfg *Config) DovecotFiles() error {
 	}
 	req.AddFile(&agent.File{
 		Task:    "write",
-		Path:    agent.SieveAfter(forwardName),
+		Path:    cfg.SieveAfter(forwardName),
 		Content: forwardData,
 		Mode:    "0644",
 		User:    "vmail",
@@ -150,7 +167,7 @@ func (cfg *Config) DovecotFiles() error {
 
 		req.AddFile(&agent.File{
 			Task:    "write",
-			Path:    agent.GetEtcDir("dovecot", name),
+			Path:    releases.GetEtcDir("dovecot", name),
 			Content: content,
 			Backup:  true,
 			Mode:    "0644",

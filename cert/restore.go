@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
 

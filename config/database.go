@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
 )
 
 func (cfg *Config) DeployDatabase() error {
@@ -18,7 +19,7 @@ func (cfg *Config) DeployDatabase() error {
 	}
 	file := agent.File{
 		Task:    "write",
-		Path:    agent.GetEtcDir(path),
+		Path:    releases.GetEtcDir(path),
 		Content: content,
 		Mode:    "0644",
 		User:    "root",

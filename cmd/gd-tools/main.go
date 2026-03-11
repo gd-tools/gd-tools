@@ -15,7 +15,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/railduino/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/agent"
 )
 
 var (

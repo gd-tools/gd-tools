@@ -11,11 +11,12 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/gd-tools/gd-tools/releases"
 	"gopkg.in/ini.v1"
 )
 
 func OCISConfigPath(path string) string {
-	configPath := GetToolsDir("data", "ocis", ".ocis", "config")
+	configPath := releases.GetToolsDir("data", "ocis", ".ocis", "config")
 	if path == "" {
 		return configPath
 	}
@@ -63,7 +64,7 @@ func OCISHandler(req *Request, resp *Response) error {
 		"--insecure", "yes",
 		"--admin-password", password,
 	}
-	cmd := exec.Command(GetBinDir("ocis"), args...)
+	cmd := exec.Command(releases.GetBinDir("ocis"), args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Credential: &syscall.Credential{
 			Uid: uint32(uid),

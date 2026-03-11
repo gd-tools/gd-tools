@@ -3,24 +3,15 @@ package config
 import (
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/releases"
-	"github.com/railduino/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
 )
 
 func (cfg *Config) DeployPackages(upgrade bool) error {
 	cfg.Debug("Enter config/packages.go")
 
-	catalog, err := releases.Load()
-	if err != nil {
-		return err
-	}
-	baseline, err := catalog.GetBaseline(cfg.Baseline)
-	if err != nil {
-		return err
-	}
-
-	if err := cfg.PackagesRepos(baseline); err != nil {
+	if err := cfg.PackagesRepos(); err != nil {
 		return err
 	}
 
@@ -28,10 +19,10 @@ func (cfg *Config) DeployPackages(upgrade bool) error {
 	if cfg.CheckRemote("test -r /root/.gd-tools-first-run") {
 		task = "checking"
 	}
-	cfg.Sayf("%s %d packages - please be patient ...", task, len(baseline.Packages))
+	cfg.Sayf("%s %d packages - please be patient ...", task, len(cfg.Baseline.Packages))
 
 	req := cfg.NewRequest()
-	req.Packages = baseline.Packages
+	req.Packages = cfg.Baseline.Packages
 	req.Upgrade = upgrade
 	req.Firewall = cfg.Firewall
 	req.UbuntuPro = cfg.UbuntuPro
@@ -46,39 +37,39 @@ func (cfg *Config) DeployPackages(upgrade bool) error {
 	return nil
 }
 
-func (cfg *Config) PackagesRepos(bl *releases.Baseline) error {
+func (cfg *Config) PackagesRepos() error {
 	req := cfg.NewRequest()
 
-	for _, name := range bl.Repos {
+	for _, name := range cfg.Baseline.Repos {
 		keyName := name + ".gpg"
-		keyTmpl := filepath.Join("apt", bl.Name, "keys", keyName)
+		keyTmpl := filepath.Join("apt", cfg.BaselineName, "keys", keyName)
 		keyData, err := templates.Load(keyTmpl, cfg.Verbose)
 		if err != nil {
 			return err
 		}
 		req.AddFile(&agent.File{
 			Task:    "write",
-			Path:    agent.GetEtcDir("apt", "keyrings", keyName),
+			Path:    releases.GetEtcDir("apt", "keyrings", keyName),
 			Content: keyData,
 			Mode:    "0644",
 		})
 
 		srcName := name + ".sources"
 		oldName := name + ".list"
-		srcTmpl := filepath.Join("apt", bl.Name, "sources", srcName)
+		srcTmpl := filepath.Join("apt", cfg.BaselineName, "sources", srcName)
 		srcData, err := templates.Load(srcTmpl, cfg.Verbose)
 		if err != nil {
 			return err
 		}
 		req.AddFile(&agent.File{
 			Task:    "write",
-			Path:    agent.GetEtcDir("apt", "sources.list.d", srcName),
+			Path:    releases.GetEtcDir("apt", "sources.list.d", srcName),
 			Content: srcData,
 			Mode:    "0644",
 		})
 		req.AddFile(&agent.File{
 			Task: "delete",
-			Path: agent.GetEtcDir("apt", "sources.list.d", oldName),
+			Path: releases.GetEtcDir("apt", "sources.list.d", oldName),
 		})
 	}
 

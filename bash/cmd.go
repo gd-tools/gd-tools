@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/templates"
 	"github.com/urfave/cli/v2"
 )
 

@@ -9,31 +9,31 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/railduino/gd-tools/php"
+	"github.com/gd-tools/gd-tools/releases"
 )
 
 const (
-	NextcloudName = "nextcloud.json"
+	NextcloudName = "nextcloud"
+	NextcloudFile = NextcloudName + ".json"
 )
 
 type Nextcloud struct {
-	Name       string   `json:"name"`
-	Language   string   `json:"language"`
-	Region     string   `json:"region"`
-	HostName   string   `json:"host_name"`
-	DomainName string   `json:"domain_name"`
-	Version    string   `json:"version"`
-	PhpVersion string   `json:"php_version"`
-	ServerFQDN string   `json:"server_fqdn"`
-	Subdir     string   `json:"subdir"`
-	Password   string   `json:"password"`
-	InstanceID string   `json:"instance_id"`
-	Salt       string   `json:"salt"`
-	Secret     string   `json:"secret"`
-	AdminEmail string   `json:"admin_email"`
-	AppList    []string `json:"app_list,omitempty"`
+	Name       string `json:"name"`
+	Language   string `json:"language"`
+	Region     string `json:"region"`
+	HostName   string `json:"host_name"`
+	DomainName string `json:"domain_name"`
+	Version    string `json:"version"`
+	PhpVersion string `json:"php_version"`
+	ServerFQDN string `json:"server_fqdn"`
+	Subdir     string `json:"subdir"`
+	Password   string `json:"password"`
+	InstanceID string `json:"instance_id"`
+	Salt       string `json:"salt"`
+	Secret     string `json:"secret"`
+	AdminEmail string `json:"admin_email"`
 
-	Download *Download `json:"-"`
+	Download *releases.Download `json:"-"`
 }
 
 type NextcloudList struct {
@@ -45,11 +45,11 @@ func (nc *Nextcloud) FQDN() string {
 }
 
 func (nc *Nextcloud) RootDir() string {
-	return GetToolsDir("data", "nextcloud", nc.Name)
+	return releases.GetToolsDir("data", "nextcloud", nc.Name)
 }
 
 func (nc *Nextcloud) SocketPath() string {
-	name := fmt.Sprintf("php%s-nextcloud-%s.sock", php.GetPhpVersion(), nc.Name)
+	name := fmt.Sprintf("php%s-nextcloud-%s.sock", nc.PhpVersion, nc.Name)
 	return filepath.Join("/run/php", name)
 }
 
@@ -82,7 +82,7 @@ func (nc *Nextcloud) DataDir(paths ...string) string {
 }
 
 func (nc *Nextcloud) LogsDir(paths ...string) string {
-	logsDir := GetToolsDir("logs", "nextcloud", nc.Name)
+	logsDir := releases.GetToolsDir("logs", "nextcloud", nc.Name)
 	if len(paths) == 0 {
 		return logsDir
 	}
@@ -90,7 +90,7 @@ func (nc *Nextcloud) LogsDir(paths ...string) string {
 }
 
 func (nc *Nextcloud) CronPath() string {
-	return GetEtcDir("cron.d", "nextcloud_"+nc.Name)
+	return releases.GetEtcDir("cron.d", "nextcloud_"+nc.Name)
 }
 
 func (nc *Nextcloud) VhostPath() string {
@@ -100,27 +100,27 @@ func (nc *Nextcloud) VhostPath() string {
 
 func (nc *Nextcloud) HookPath() string {
 	name := "backup-pre-nextcloud-" + nc.Name
-	return GetToolsDir("data", "hooks", name)
+	return releases.GetToolsDir("data", "hooks", name)
 }
 
 func (nc *Nextcloud) CertDir() string {
-	return GetToolsDir("data", "certs", nc.FQDN())
+	return releases.GetToolsDir("data", "certs", nc.FQDN())
 }
 
 // the following functions are on Dev
 func LoadNextcloudList(update *Nextcloud) (*NextcloudList, error) {
 	var list NextcloudList
 
-	content, err := os.ReadFile(NextcloudName)
+	content, err := os.ReadFile(NextcloudFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &list, nil
 		}
-		return nil, fmt.Errorf("failed to read %s: %w", NextcloudName, err)
+		return nil, fmt.Errorf("failed to read %s: %w", NextcloudFile, err)
 	}
 
 	if err := json.Unmarshal(content, &list); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal %s: %w", NextcloudName, err)
+		return nil, fmt.Errorf("failed to unmarshal %s: %w", NextcloudFile, err)
 	}
 
 	for index, _ := range list.Entries {
@@ -195,16 +195,16 @@ func (list *NextcloudList) Save() error {
 
 	content, err := json.MarshalIndent(list, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", NextcloudName, err)
+		return fmt.Errorf("failed to marshal %s: %w", NextcloudFile, err)
 	}
 
-	existing, err := os.ReadFile(NextcloudName)
+	existing, err := os.ReadFile(NextcloudFile)
 	if err == nil && bytes.Equal(existing, content) {
 		return nil
 	}
 
-	if err := os.WriteFile(NextcloudName, content, 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", NextcloudName, err)
+	if err := os.WriteFile(NextcloudFile, content, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", NextcloudFile, err)
 	}
 
 	return nil

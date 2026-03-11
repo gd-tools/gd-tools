@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/railduino/gd-tools/dns"
-	"github.com/railduino/gd-tools/email"
+	"github.com/gd-tools/gd-tools/dns"
+	"github.com/gd-tools/gd-tools/email"
 )
 
 func (cfg *Config) DNSProvider() (dns.DNSProvider, error) {

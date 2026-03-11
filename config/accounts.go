@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/email"
-	"github.com/railduino/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/email"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
 )
 
 type Mailer struct {
@@ -24,7 +25,7 @@ func LoadMailer() (*Mailer, error) {
 	mailer := Mailer{
 		VmailUID: vmailUser.UID,
 		VmailGID: vmailUser.GID,
-		MailPath: agent.GetToolsDir("data", "vmail"),
+		MailPath: releases.GetToolsDir("data", "vmail"),
 	}
 
 	return &mailer, nil
@@ -69,7 +70,7 @@ func (cfg *Config) DeployAccountMap(sel map[string]bool) error {
 func (cfg *Config) DeployAccountDomain(domain *email.Domain) error {
 	req := cfg.NewRequest()
 
-	domainDir := agent.GetToolsDir("data", "vmail", domain.Name)
+	domainDir := releases.GetToolsDir("data", "vmail", domain.Name)
 	domainMkdir := agent.File{
 		Task:  "mkdir",
 		Path:  domainDir,
@@ -108,7 +109,7 @@ func (cfg *Config) DeployAccountDomain(domain *email.Domain) error {
 func (cfg *Config) EmailUser(user *email.User) error {
 	req := cfg.NewRequest()
 
-	userDir := agent.GetToolsDir("data", "vmail", user.Domain, user.Local)
+	userDir := releases.GetToolsDir("data", "vmail", user.Domain, user.Local)
 	userSubDirs := []string{
 		userDir,
 		filepath.Join(userDir, "Maildir"),
@@ -148,7 +149,7 @@ func (cfg *Config) EmailUser(user *email.User) error {
 func (cfg *Config) ProxyDirs(domain *email.Domain) error {
 	req := cfg.NewRequest()
 
-	proxyDir := agent.GetToolsDir("data", "mailproxy", domain.Name)
+	proxyDir := releases.GetToolsDir("data", "mailproxy", domain.Name)
 	data := struct {
 		Domain string
 		FQDN   string
@@ -245,7 +246,7 @@ func (cfg *Config) ProxyDirs(domain *email.Domain) error {
 	// Create dir for all log files
 	allLogsMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.GetToolsDir("logs", "mailproxy"),
+		Path:  releases.GetToolsDir("logs", "mailproxy"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -255,7 +256,7 @@ func (cfg *Config) ProxyDirs(domain *email.Domain) error {
 	// Create dir for domain log files
 	logsMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.GetToolsDir("logs", "mailproxy", domain.Name),
+		Path:  releases.GetToolsDir("logs", "mailproxy", domain.Name),
 		Mode:  "0755",
 		User:  "www-data",
 		Group: "www-data",
@@ -296,9 +297,9 @@ func (cfg *Config) ProxyVhost(domain *email.Domain) error {
 	}{
 		Domain:   domain.Name,
 		SysAdmin: cfg.SysAdmin,
-		RootDir:  agent.GetToolsDir("data", "mailproxy", domain.Name),
-		CertDir:  agent.GetToolsDir("data", "certs", certName),
-		LogsDir:  agent.GetToolsDir("logs", "mailproxy", domain.Name),
+		RootDir:  releases.GetToolsDir("data", "mailproxy", domain.Name),
+		CertDir:  releases.GetToolsDir("data", "certs", certName),
+		LogsDir:  releases.GetToolsDir("logs", "mailproxy", domain.Name),
 	}
 
 	tmpl, err := templates.Parse("mailproxy/vhost.conf", cfg.Verbose, config)

@@ -3,8 +3,8 @@ package rustdesk
 import (
 	"fmt"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/config"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/config"
 	"github.com/urfave/cli/v2"
 )
 

@@ -3,18 +3,19 @@ package config
 import (
 	"fmt"
 
-	"github.com/railduino/gd-tools/agent"
-	"github.com/railduino/gd-tools/email"
-	"github.com/railduino/gd-tools/templates"
-	"github.com/railduino/gd-tools/utils"
+	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/email"
+	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/utils"
 )
 
 func (cfg *Config) DeployApache() error {
 	cfg.Debug("Enter config/apache.go")
 
 	cfg.RootDir = agent.GetApacheToolsDir()
-	cfg.LogsDir = agent.GetToolsDir("logs", "apache")
-	cfg.CertDir = agent.GetToolsDir("data", "certs", cfg.FQDN())
+	cfg.LogsDir = releases.GetToolsDir("logs", "apache")
+	cfg.CertDir = releases.GetToolsDir("data", "certs", cfg.FQDN())
 
 	if err := cfg.ApacheMods(); err != nil {
 		return err
@@ -120,7 +121,7 @@ func (cfg *Config) ApacheDirs() error {
 
 	cacheMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  agent.GetVarDir("cache", "fontconfig"),
+		Path:  releases.GetVarDir("cache", "fontconfig"),
 		Mode:  "0755",
 		User:  "www-data",
 		Group: "www-data",

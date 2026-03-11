@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gd-tools/gd-tools/acme"
 	"github.com/go-acme/lego/v4/certificate"
-	"github.com/railduino/gd-tools/acme"
 )
 
 const (
