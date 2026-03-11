@@ -16,6 +16,7 @@ import (
 	"syscall"
 
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/releases"
 )
 
 var (
@@ -124,15 +125,15 @@ func main() {
 	flag.Parse()
 
 	tlsCert, err := tls.LoadX509KeyPair(
-		agent.GetEtcDir("gd-tools", "server.crt"),
-		agent.GetEtcDir("gd-tools", "server.key"),
+		releases.GetEtcDir("gd-tools", "server.crt"),
+		releases.GetEtcDir("gd-tools", "server.key"),
 	)
 	if err != nil {
 		log.Fatalf("Failed to load server certificate: %v", err)
 	}
 
 	caCertBytes, err := os.ReadFile(
-		agent.GetEtcDir("gd-tools", "ca.crt"),
+		releases.GetEtcDir("gd-tools", "ca.crt"),
 	)
 	if err != nil {
 		log.Fatalf("Failed to load CA certificate: %v", err)

@@ -216,14 +216,14 @@ func Run(c *cli.Context) error {
 		mount := agent.Mount{
 			Provider: "Hetzner",
 			ID:       volume,
-			Dir:      agent.GetToolsDir(""),
+			Dir:      releases.GetToolsDir(""),
 		}
 		cfg.Mounts = append(cfg.Mounts, &mount)
 	} else if device := c.String("raid-device"); device != "" {
 		mount := agent.Mount{
 			Provider: "RAID",
 			ID:       device,
-			Dir:      agent.GetToolsDir(""),
+			Dir:      releases.GetToolsDir(""),
 		}
 		cfg.Mounts = append(cfg.Mounts, &mount)
 	}

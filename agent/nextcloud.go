@@ -50,7 +50,7 @@ func (nc *Nextcloud) RootDir() string {
 
 func (nc *Nextcloud) SocketPath() string {
 	name := fmt.Sprintf("php%s-nextcloud-%s.sock", nc.PhpVersion, nc.Name)
-	return filepath.Join("/run/php", name)
+	return releases.GetRunDir("php", name)
 }
 
 func (nc *Nextcloud) ConfigPath() string {

@@ -263,7 +263,7 @@ func (cfg *Config) NextcloudSetupPool(nc *agent.Nextcloud) error {
 		return err
 	}
 
-	poolPath := cfg.PhpFpmPoolPath(0, nc.Name)
+	poolPath := cfg.PhpFpmPoolPath(nc.Name)
 	poolFile := agent.File{
 		Task:    "write",
 		Path:    poolPath,

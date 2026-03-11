@@ -34,18 +34,14 @@ func (cfg *Config) DeployRustDesk(rd *agent.RustDesk) error {
 	}
 	cfg.Debug("Enter config/rustdesk.go")
 
-	cat, err := releases.Load()
+	_, rdRel, err := cfg.Catalog.Get("rustdesk", rd.Version)
 	if err != nil {
 		return err
 	}
-	_, rel, err := cat.Get("rustdesk", rd.Version)
-	if err != nil {
-		return err
-	}
-	if rel.Download.Directory == "" {
+	if rdRel.Download.Directory == "" {
 		return fmt.Errorf("missing Directory in RustDesk download")
 	}
-	rd.Download = &rel.Download
+	rd.Download = &rdRel.Download
 
 	if err := cfg.RustDeskUser(rd); err != nil {
 		return err
@@ -133,7 +129,7 @@ func (cfg *Config) RustDeskExtract(rd *agent.RustDesk) error {
 
 	extract := agent.File{
 		Task:   "extract",
-		Path:   agent.GetDownloadsDir(rd.Download.Filename),
+		Path:   releases.GetDownloadsDir(rd.Download.Filename),
 		Target: rd.DataDir(),
 		Mode:   "0750",
 		User:   "rustdesk",
@@ -160,7 +156,7 @@ func (cfg *Config) RustDeskService(rd *agent.RustDesk) error {
 		}
 		file := agent.File{
 			Task:    "write",
-			Path:    agent.GetEtcDir("systemd", "system", "rustdesk-hbbs.service"),
+			Path:    releases.GetEtcDir("systemd", "system", "rustdesk-hbbs.service"),
 			Content: content,
 			Mode:    "0644",
 			Service: "rustdesk-hbbs",
@@ -177,7 +173,7 @@ func (cfg *Config) RustDeskService(rd *agent.RustDesk) error {
 		}
 		file := agent.File{
 			Task:    "write",
-			Path:    agent.GetEtcDir("systemd", "system", "rustdesk-hbbr.service"),
+			Path:    releases.GetEtcDir("systemd", "system", "rustdesk-hbbr.service"),
 			Content: content,
 			Mode:    "0644",
 			Service: "rustdesk-hbbr",

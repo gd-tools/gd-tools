@@ -50,11 +50,6 @@ func (c *Catalog) GetBaseline(name string) (*Baseline, error) {
 	return nil, fmt.Errorf("baseline %q not found", name)
 }
 
-// GetPhpPoolPath returns the php-fpm pool for the current baseline.
-func (bl *Baseline) GetPhpPoolPath() string {
-	return "TODO" // /etc/phpx.x/fpm ...
-}
-
 // Get returns a specific release for one product.
 // Return the default release if num is empty.
 func (c *Catalog) Get(name, num string) (*Product, *Release, error) {

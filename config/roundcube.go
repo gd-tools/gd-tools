@@ -14,6 +14,7 @@ import (
 type Roundcube struct {
 	DomainName string
 	Name       string
+	PhpVersion string
 	FQDN       string
 	SysAdmin   string
 	Locale     string
@@ -28,7 +29,7 @@ func (rc *Roundcube) WebMail() string {
 }
 
 func (rc *Roundcube) RootDir() string {
-	return agent.GetToolsDir("data", "roundcube", rc.Name)
+	return releases.GetToolsDir("data", "roundcube", rc.Name)
 }
 
 func (rc *Roundcube) BaseDir() string {
@@ -36,15 +37,16 @@ func (rc *Roundcube) BaseDir() string {
 }
 
 func (rc *Roundcube) CertDir() string {
-	return agent.GetToolsDir("data", "certs", rc.WebMail())
+	return releases.GetToolsDir("data", "certs", rc.WebMail())
 }
 
 func (rc *Roundcube) LogsDir() string {
-	return agent.GetToolsDir("logs", "roundcube", rc.Name)
+	return releases.GetToolsDir("logs", "roundcube", rc.Name)
 }
 
 func (rc *Roundcube) SocketPath() string {
-	return fmt.Sprintf("/run/php/php%s-roundcube-%s.sock", php.GetPhpVersion(), rc.Name)
+	name := fmt.Sprintf("php%s-roundcube-%s.sock", rc.PhpVersion, rc.Name)
+	return releases.GetRunDir("php", name)
 }
 
 func (cfg *Config) DeployRoundcube() error {
@@ -80,11 +82,7 @@ func (cfg *Config) DeployRoundcubeMap(sel map[string]bool) error {
 func (cfg *Config) DeployRoundcubeDomain(domain *email.Domain) error {
 	cfg.Debugf("Enter config/roundcube.go (%s)", domain.Name)
 
-	catalog, err := releases.Load()
-	if err != nil {
-		return err
-	}
-	_, rcRel, err := catalog.Get("roundcube", "")
+	_, rcRel, err := cfg.Catalog.Get("roundcube", cfg.Roundcube)
 	if err != nil {
 		return err
 	}
@@ -96,11 +94,12 @@ func (cfg *Config) DeployRoundcubeDomain(domain *email.Domain) error {
 	rc := &Roundcube{
 		DomainName: domain.Name,
 		Name:       agent.MakeDBName(domain.Name),
+		PhpVersion: cfg.Baseline.PHP,
 		FQDN:       cfg.FQDN(), // for Postfix / Dovecot access
 		SysAdmin:   cfg.SysAdmin,
 		Locale:     cfg.Locale(),
-		DirName:    rel.Download.Directory,
-		Download:   &rel.Download,
+		DirName:    rcRel.Download.Directory,
+		Download:   &rcRel.Download,
 	}
 
 	rc.Password, err = utils.FetchPassword(20, "vmail", "db_password")
@@ -174,7 +173,7 @@ func (cfg *Config) RoundcubeExtract(rc *Roundcube) error {
 
 	extract := agent.File{
 		Task:   "extract",
-		Path:   agent.GetDownloadsDir(rc.Download.Filename),
+		Path:   releases.GetDownloadsDir(rc.Download.Filename),
 		Target: rc.RootDir(),
 		Mode:   "0755",
 		User:   "root",
@@ -275,7 +274,7 @@ func (cfg *Config) RoundcubeConfigFiles(rc *Roundcube) error {
 	if err != nil {
 		return err
 	}
-	poolPath := php.GetPhpFpmPoolPath(15, "roundcube-"+rc.Name)
+	poolPath := cfg.PhpFpmPoolPath("roundcube-" + rc.Name)
 	poolFile := agent.File{
 		Task:    "write",
 		Path:    poolPath,
@@ -283,7 +282,7 @@ func (cfg *Config) RoundcubeConfigFiles(rc *Roundcube) error {
 		Mode:    "0644",
 		User:    "root",
 		Group:   "root",
-		Service: php.GetPhpFpmService(),
+		Service: cfg.PhpFpmService(),
 	}
 	req.AddFile(&poolFile)
 

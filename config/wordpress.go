@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/php"
 	"github.com/gd-tools/gd-tools/releases"
 	"github.com/gd-tools/gd-tools/templates"
 )
@@ -24,6 +23,7 @@ type WordPress struct {
 	HostName     string   `json:"host_name"`
 	DomainName   string   `json:"domain_name"`
 	Version      string   `json:"version"`
+	PhpVersion   string   `json:"php_version"`
 	WpCliVersion string   `json:"wp_cli_version"`
 	Aliases      []string `json:"aliases"`
 	Language     string   `json:"language"`
@@ -71,12 +71,12 @@ func (wp *WordPress) ServerAlias() string {
 }
 
 func (wp *WordPress) RootDir() string {
-	return agent.GetToolsDir("data", WordPressName, wp.Name())
+	return releases.GetToolsDir("data", WordPressName, wp.Name())
 }
 
 func (wp *WordPress) SocketPath() string {
-	name := fmt.Sprintf("php%s-wp-%s.sock", php.GetPhpVersion(), wp.Name())
-	return filepath.Join("/run/php", name)
+	name := fmt.Sprintf("php%s-wordpress-%s.sock", wp.PhpVersion, wp.Name())
+	return releases.GetRunDir("php", name)
 }
 
 func (wp *WordPress) ConfigPath() string {
@@ -92,7 +92,7 @@ func (wp *WordPress) BaseDir(paths ...string) string {
 }
 
 func (wp *WordPress) LogsDir(paths ...string) string {
-	logsDir := agent.GetToolsDir("logs", WordPressName, wp.Name())
+	logsDir := releases.GetToolsDir("logs", WordPressName, wp.Name())
 	if len(paths) == 0 {
 		return logsDir
 	}
@@ -106,11 +106,11 @@ func (wp *WordPress) VhostPath() string {
 
 func (wp *WordPress) HookPath() string {
 	name := fmt.Sprintf("backup-pre-%s-%s", WordPressName, wp.Name())
-	return agent.GetToolsDir("data", "hooks", name)
+	return releases.GetToolsDir("data", "hooks", name)
 }
 
 func (wp *WordPress) CertDir() string {
-	return agent.GetToolsDir("data", "certs", wp.FQDN())
+	return releases.GetToolsDir("data", "certs", wp.FQDN())
 }
 
 func (wp *WordPress) CertificateList() (string, []string) {
@@ -145,7 +145,7 @@ func (wp *WordPress) NameList() []string {
 
 func (wp *WordPress) CronPath() string {
 	name := WordPressName + "_" + wp.Name()
-	return agent.GetEtcDir("cron.d", name)
+	return releases.GetEtcDir("cron.d", name)
 }
 
 func LoadWordPressList(update *WordPress) (*WordPressList, error) {
@@ -330,7 +330,7 @@ func (cfg *Config) WordPressExtract(wp *WordPress) error {
 		return err
 	}
 
-	downloadDir := agent.GetDownloadsDir(rel.Download.Filename)
+	downloadDir := releases.GetDownloadsDir(rel.Download.Filename)
 	extract := agent.File{
 		Task:   "extract",
 		Path:   downloadDir,
@@ -467,7 +467,7 @@ func (cfg *Config) WordPressConfig(wp *WordPress) error {
 		return err
 	}
 
-	poolPath := php.GetPhpFpmPoolPath(999, WordPressName+"-"+wp.Name())
+	poolPath := cfg.PhpFpmPoolPath("wordpress-" + wp.Name())
 	poolFile := agent.File{
 		Task:    "write",
 		Path:    poolPath,
@@ -475,7 +475,7 @@ func (cfg *Config) WordPressConfig(wp *WordPress) error {
 		Mode:    "0644",
 		User:    "root",
 		Group:   "root",
-		Service: php.GetPhpFpmService(),
+		Service: cfg.PhpFpmService(),
 	}
 	req.AddFile(&poolFile)
 
@@ -566,12 +566,12 @@ func (wp *WordPress) SaltEntry(num int) string {
 }
 
 func (wp *WordPress) WP_CLI_Path() string {
-	return agent.GetBinDir("wp-" + wp.Name())
+	return releases.GetBinDir("wp-" + wp.Name())
 }
 
 func (cfg *Config) WordPressExtras(wp *WordPress) error {
-	wpSrc := agent.GetBinDir("gd-wp-cli")
-	wpDst := agent.GetBinDir("wp-" + wp.Name())
+	wpSrc := releases.GetBinDir("gd-wp-cli")
+	wpDst := releases.GetBinDir("wp-" + wp.Name())
 	if _, err := cfg.LocalCommand(
 		"rsync",
 		cfg.RsyncFlags(),

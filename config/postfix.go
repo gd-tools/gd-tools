@@ -10,6 +10,7 @@ import (
 
 	"github.com/gd-tools/gd-tools/agent"
 	"github.com/gd-tools/gd-tools/email"
+	"github.com/gd-tools/gd-tools/releases"
 	"github.com/gd-tools/gd-tools/templates"
 	"github.com/gd-tools/gd-tools/utils"
 )
@@ -64,7 +65,7 @@ func (cfg *Config) DeployPostfix() error {
 		HostName:   cfg.FQDN(),
 		DomainName: cfg.DomainName,
 		Password:   password,
-		CertDir:    agent.GetToolsDir("data", "certs", cfg.FQDN()),
+		CertDir:    releases.GetToolsDir("data", "certs", cfg.FQDN()),
 		VmailUID:   mailer.VmailUID,
 		VmailGID:   mailer.VmailGID,
 		MailPath:   mailer.MailPath,
@@ -125,7 +126,7 @@ func (cfg *Config) PostfixTables() error {
 
 		file := agent.File{
 			Task:    "write",
-			Path:    agent.GetEtcDir("postfix", name),
+			Path:    releases.GetEtcDir("postfix", name),
 			Content: content,
 			Mode:    "0644",
 			Service: "postfix",
@@ -170,7 +171,7 @@ func (cfg *Config) PostfixSASL() error {
 	content := strings.Join(lines, "\n") + "\n"
 	file := agent.File{
 		Task:    "postmap",
-		Path:    agent.GetEtcDir("postfix", "sasl_passwd"),
+		Path:    releases.GetEtcDir("postfix", "sasl_passwd"),
 		Content: []byte(content),
 		Mode:    "0600",
 		Service: "postfix",
@@ -215,7 +216,7 @@ func (cfg *Config) PostfixMaps() error {
 	transportData := strings.Join(transportLines, "\n") + "\n"
 	transportFile := agent.File{
 		Task:    "postmap",
-		Path:    agent.GetEtcDir("postfix", "transport"),
+		Path:    releases.GetEtcDir("postfix", "transport"),
 		Content: []byte(transportData),
 		Mode:    "0600",
 		Service: "postfix",
@@ -232,7 +233,7 @@ func (cfg *Config) PostfixMaps() error {
 	policyData := strings.Join(policyLines, "\n") + "\n"
 	policyFile := agent.File{
 		Task:    "postmap",
-		Path:    agent.GetEtcDir("postfix", "tls_policy"),
+		Path:    releases.GetEtcDir("postfix", "tls_policy"),
 		Content: []byte(policyData),
 		Mode:    "0600",
 		Service: "postfix",
@@ -257,7 +258,7 @@ func (cfg *Config) PostfixMain() error {
 
 	file := agent.File{
 		Task:    "write",
-		Path:    agent.GetEtcDir("postfix", "main.cf"),
+		Path:    releases.GetEtcDir("postfix", "main.cf"),
 		Content: content,
 		Backup:  true,
 		Mode:    "0644",
@@ -287,7 +288,7 @@ func (cfg *Config) PostfixMaster() error {
 
 	file := agent.File{
 		Task:    "write",
-		Path:    agent.GetEtcDir("postfix", "master.cf"),
+		Path:    releases.GetEtcDir("postfix", "master.cf"),
 		Content: content,
 		Backup:  true,
 		Mode:    "0644",

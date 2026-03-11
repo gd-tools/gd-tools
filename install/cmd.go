@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gd-tools/gd-tools/agent"
 	"github.com/gd-tools/gd-tools/config"
+	"github.com/gd-tools/gd-tools/releases"
 	"github.com/gd-tools/gd-tools/templates"
 	"github.com/urfave/cli/v2"
 )
@@ -47,7 +47,7 @@ func Run(c *cli.Context) error {
 		return err
 	}
 
-	etcTools := agent.GetEtcDir("gd-tools")
+	etcTools := releases.GetEtcDir("gd-tools")
 	mkdirCmd := "install -o root -g root -m 0700 -d " + etcTools
 	if err := cfg.RemoteCmd(mkdirCmd); err != nil {
 		return fmt.Errorf("failed to install %s: %w", etcTools, err)
@@ -70,7 +70,7 @@ func Run(c *cli.Context) error {
 		"gd-tools",
 	}
 	for _, prog := range gdProgs {
-		progPath := agent.GetBinDir(prog)
+		progPath := releases.GetBinDir(prog)
 		if _, err := cfg.LocalCommand(
 			"rsync",
 			cfg.RsyncFlags(),
@@ -87,7 +87,7 @@ func Run(c *cli.Context) error {
 	data := struct {
 		ProgPath string
 	}{
-		ProgPath: agent.GetBinDir("gd-tools"),
+		ProgPath: releases.GetBinDir("gd-tools"),
 	}
 	content, err := templates.Parse(service, cfg.Verbose, data)
 	if err != nil {
@@ -98,7 +98,7 @@ func Run(c *cli.Context) error {
 	}
 	defer os.Remove(service)
 
-	systemd := agent.GetEtcDir("systemd", "system", service)
+	systemd := releases.GetEtcDir("systemd", "system", service)
 	if _, err := cfg.LocalCommand(
 		"rsync",
 		cfg.RsyncFlags(),

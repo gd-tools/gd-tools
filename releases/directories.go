@@ -11,6 +11,7 @@ var (
 	ToolsDir string
 	EtcDir   string
 	BinDir   string
+	RunDir   string
 )
 
 // RootDir is the home of user root
@@ -106,4 +107,23 @@ func GetBinDir(paths ...string) string {
 		return BinDir
 	}
 	return filepath.Join(append([]string{BinDir}, paths...)...)
+}
+
+// Run is the runtime state
+func SetRunDir(path string) {
+	if path == "" {
+		path = os.Getenv("GD_TOOLS_RUN_DIR")
+	}
+	if path == "" {
+		path = "/run"
+	}
+	RunDir = path
+}
+
+func GetRunDir(paths ...string) string {
+	SetRunDir("")
+	if len(paths) == 0 {
+		return RunDir
+	}
+	return filepath.Join(append([]string{RunDir}, paths...)...)
 }

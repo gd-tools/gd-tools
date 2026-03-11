@@ -64,7 +64,7 @@ var Command = &cli.Command{
 
 func Run(c *cli.Context) error {
 	cfg, err := config.ReadConfig(c)
-	if err != nil || cfg.Baseline == nil {
+	if err != nil {
 		return err
 	}
 
@@ -110,9 +110,9 @@ func Run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	entry.Version = ncRel.Name
+	entry.Version = ncRel.Number
 
-	baseline, err := catalog.GetBaseline(cfg.Baseline)
+	baseline, err := catalog.GetBaseline(cfg.BaselineName)
 	if err != nil {
 		return err
 	}

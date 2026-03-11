@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/releases"
 	"github.com/gd-tools/gd-tools/templates"
 )
 
@@ -53,11 +54,11 @@ func (redir *Redirect) ServerAlias() string {
 }
 
 func (redir *Redirect) LogsDir() string {
-	return agent.GetToolsDir("logs", "redirect", redir.Name())
+	return releases.GetToolsDir("logs", "redirect", redir.Name())
 }
 
 func (redir *Redirect) CertDir() string {
-	return agent.GetToolsDir("data", "certs", redir.FQDN())
+	return releases.GetToolsDir("data", "certs", redir.FQDN())
 }
 
 func (redir *Redirect) VhostPath() string {

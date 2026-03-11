@@ -1,10 +1,20 @@
 package config
 
 import (
+	"path/filepath"
+
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/php"
+	"github.com/gd-tools/gd-tools/releases"
 	"github.com/gd-tools/gd-tools/templates"
 )
+
+func (cfg *Config) PhpEtcDir(paths ...string) string {
+	phpDir := releases.GetEtcDir("php", cfg.Baseline.PHP)
+	if len(paths) == 0 {
+		return phpDir
+	}
+	return filepath.Join(append([]string{phpDir}, paths...)...)
+}
 
 func (cfg *Config) PhpFpmPoolPath(name string) string {
 	return releases.GetEtcDir("php", cfg.Baseline.PHP, "fpm", "pool.d", name+".conf")
@@ -32,11 +42,11 @@ func (cfg *Config) DeployPHP() error {
 	for _, name := range phpDirs {
 		service := "apache2"
 		if name == "fpm" {
-			service = php.GetPhpFpmService()
+			service = cfg.PhpFpmService()
 		}
 		file := agent.File{
 			Task:    "write",
-			Path:    php.GetPhpEtcDir(name, "conf.d", "60-custom.ini"),
+			Path:    cfg.PhpEtcDir(name, "conf.d", "60-custom.ini"),
 			Content: content,
 			Mode:    "0644",
 			Service: service,
