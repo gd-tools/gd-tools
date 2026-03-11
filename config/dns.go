@@ -20,7 +20,9 @@ func (cfg *Config) DNSProvider() (dns.DNSProvider, error) {
 	if cfg.IonosToken != "" {
 		return dns.NewIonosProvider(cfg.IonosToken)
 	}
-	// TODO (later) add more providers here
+	if cfg.CloudflareToken != "" {
+		return dns.NewCloudflareProvider(cfg.CloudflareToken)
+	}
 
 	return dns.NewNoopProvider("NoDNS")
 }
