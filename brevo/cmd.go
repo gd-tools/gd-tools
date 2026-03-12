@@ -1,4 +1,4 @@
-package account
+package brevo
 
 import (
 	"fmt"
@@ -8,9 +8,12 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var BrevoCommand = &cli.Command{
-	Name:  "brevo",
-	Usage: "setup Brevo for outbound emails (see https://www.brevo.com/de/)",
+var Describe = `The brevo command handles relaying Email over Brevo.`
+
+var Command = &cli.Command{
+	Name:        "brevo",
+	Usage:       "Setup Brevo for outbound emails (see https://www.brevo.com/de/)",
+	Description: Describe,
 	Flags: []cli.Flag{
 		config.FlagVerbose,
 		config.FlagDry,
@@ -29,10 +32,10 @@ var BrevoCommand = &cli.Command{
 			Usage: "SMTP key",
 		},
 	},
-	Action: BrevoRun,
+	Action: Run,
 }
 
-func BrevoRun(c *cli.Context) error {
+func Run(c *cli.Context) error {
 	_, err := config.ReadConfig(c)
 	if err != nil {
 		return err

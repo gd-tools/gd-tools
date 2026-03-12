@@ -17,7 +17,6 @@ var Command = &cli.Command{
 	},
 	Subcommands: []*cli.Command{
 		AliasCommand,
-		// BrevoCommand,
 		CAACommand,
 		// DeployCommand,
 		ListCommand,

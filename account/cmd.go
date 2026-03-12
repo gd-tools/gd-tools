@@ -10,7 +10,7 @@ var Describe = `The account command handles Email accounts.`
 
 var Command = &cli.Command{
 	Name:        "account",
-	Usage:       "Handle email users (see 'domain' for email domains)",
+	Usage:       "Handle email accounts (see 'domain' for email domains)",
 	Description: Describe,
 	Flags: []cli.Flag{
 		config.FlagVerbose,
@@ -18,7 +18,6 @@ var Command = &cli.Command{
 	},
 	Subcommands: []*cli.Command{
 		AddCommand,
-		BrevoCommand,
 		DeployCommand,
 		ForwardCommand,
 		domain.ListCommand,

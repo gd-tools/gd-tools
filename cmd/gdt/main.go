@@ -8,6 +8,7 @@ import (
 	"github.com/gd-tools/gd-tools/backup"
 	"github.com/gd-tools/gd-tools/bash"
 	"github.com/gd-tools/gd-tools/basics"
+	"github.com/gd-tools/gd-tools/brevo"
 	"github.com/gd-tools/gd-tools/cert"
 	"github.com/gd-tools/gd-tools/deploy"
 	"github.com/gd-tools/gd-tools/domain"
@@ -49,6 +50,7 @@ func main() {
 			fmt.Println("backup")
 			fmt.Println("bash")
 			fmt.Println("basics")
+			fmt.Println("brevo")
 			fmt.Println("cert")
 			fmt.Println("deploy")
 			fmt.Println("domain")
@@ -82,6 +84,7 @@ func getCommands() []*cli.Command {
 		backup.Command,
 		bash.Command,
 		basics.Command,
+		brevo.Command,
 		cert.Command,
 		deploy.Command,
 		domain.Command,
