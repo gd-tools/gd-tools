@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/templates"
 )
 
 const (
@@ -35,13 +35,13 @@ func (cfg *Config) SetupCA() error {
 		return fmt.Errorf("failed to mkdir CA: %w", err)
 	}
 
-	if ok := CheckFile(SerialName); !ok {
+	if ok := checkFile(SerialName); !ok {
 		if err := os.WriteFile(SerialName, []byte("1000\n"), 0600); err != nil {
 			return fmt.Errorf("failed to write %s: %w", SerialName, err)
 		}
 	}
 
-	if ok := CheckFile(CaKeyName); !ok {
+	if ok := checkFile(CaKeyName); !ok {
 		if _, err := agent.RunCommand(
 			"openssl",
 			"genrsa",
@@ -52,7 +52,7 @@ func (cfg *Config) SetupCA() error {
 		}
 	}
 
-	if ok := CheckFile(CaCrtName); !ok {
+	if ok := checkFile(CaCrtName); !ok {
 		if _, err := agent.RunCommand(
 			"openssl",
 			"req", "-x509", "-new", "-nodes",
@@ -65,7 +65,7 @@ func (cfg *Config) SetupCA() error {
 		}
 	}
 
-	if ok := CheckFile(ClientKeyName); !ok {
+	if ok := checkFile(ClientKeyName); !ok {
 		if _, err := agent.RunCommand(
 			"openssl",
 			"genrsa",
@@ -76,7 +76,7 @@ func (cfg *Config) SetupCA() error {
 		}
 	}
 
-	if ok := CheckFile(ClientCsrName); !ok {
+	if ok := checkFile(ClientCsrName); !ok {
 		if _, err := agent.RunCommand(
 			"openssl",
 			"req", "-new",
@@ -88,7 +88,7 @@ func (cfg *Config) SetupCA() error {
 		}
 	}
 
-	if ok := CheckFile(ClientCrtName); !ok {
+	if ok := checkFile(ClientCrtName); !ok {
 		if _, err := agent.RunCommand(
 			"openssl",
 			"x509", "-req",
@@ -103,7 +103,7 @@ func (cfg *Config) SetupCA() error {
 		}
 	}
 
-	if ok := CheckFile(ServerKeyName); !ok {
+	if ok := checkFile(ServerKeyName); !ok {
 		if _, err := agent.RunCommand(
 			"openssl",
 			"genrsa",
@@ -123,17 +123,17 @@ func (cfg *Config) SetupCA() error {
 	}{
 		HostEntries: hostEntries,
 	}
-	content, err := templates.Parse("ca.server.config", cfg.Verbose, data)
+	configTmpl, err := assets.Render("system/ca.server.config", data)
 	if err != nil {
 		return err
 	}
 
 	existing, err := os.ReadFile(ServerConfigName)
-	if err == nil && bytes.Equal(existing, content) {
+	if err == nil && bytes.Equal(existing, configTmpl) {
 		return nil
 	}
 
-	if err := os.WriteFile(ServerConfigName, content, 0600); err != nil {
+	if err := os.WriteFile(ServerConfigName, configTmpl, 0600); err != nil {
 		return fmt.Errorf("failed to write %s: %w", ServerConfigName, err)
 	}
 
@@ -166,7 +166,7 @@ func (cfg *Config) SetupCA() error {
 	return nil
 }
 
-func CheckFile(path string) bool {
+func checkFile(path string) bool {
 	f, err := os.Open(path)
 	if err != nil {
 		return false

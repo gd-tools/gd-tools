@@ -3,19 +3,18 @@ package config
 import (
 	"fmt"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
 	"github.com/gd-tools/gd-tools/email"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 	"github.com/gd-tools/gd-tools/utils"
 )
 
 func (cfg *Config) DeployApache() error {
 	cfg.Debug("Enter config/apache.go")
 
-	cfg.RootDir = agent.GetApacheToolsDir()
-	cfg.LogsDir = releases.GetToolsDir("logs", "apache")
-	cfg.CertDir = releases.GetToolsDir("data", "certs", cfg.FQDN())
+	cfg.RootDir = assets.GetApacheToolsDir()
+	cfg.LogsDir = assets.GetToolsDir("logs", "apache")
+	cfg.CertDir = assets.GetToolsDir("data", "certs", cfg.FQDN())
 
 	if err := cfg.ApacheMods(); err != nil {
 		return err
@@ -82,7 +81,7 @@ func (cfg *Config) ApacheMods() error {
 		"ssl.load", "ssl.conf",
 	}
 	for _, mod := range mods {
-		modPath := agent.GetApacheEtcDir("mods-available", mod)
+		modPath := assets.GetApacheEtcDir("mods-available", mod)
 		modFile := agent.File{
 			Task:    "process",
 			Path:    modPath,
@@ -121,7 +120,7 @@ func (cfg *Config) ApacheDirs() error {
 
 	cacheMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  releases.GetVarDir("cache", "fontconfig"),
+		Path:  assets.GetVarDir("cache", "fontconfig"),
 		Mode:  "0755",
 		User:  "www-data",
 		Group: "www-data",
@@ -142,7 +141,7 @@ func (cfg *Config) ApacheIndex() error {
 	if err != nil {
 		return err
 	}
-	indexPath := agent.GetApacheToolsDir("index.html")
+	indexPath := assets.GetApacheToolsDir("index.html")
 	indexFile := agent.File{
 		Task:    "write",
 		Path:    indexPath,
@@ -156,7 +155,7 @@ func (cfg *Config) ApacheIndex() error {
 	if err != nil {
 		return err
 	}
-	testPath := agent.GetApacheToolsDir("test.php")
+	testPath := assets.GetApacheToolsDir("test.php")
 	testFile := agent.File{
 		Task:    "write",
 		Path:    testPath,
@@ -181,7 +180,7 @@ func (cfg *Config) ApacheOptions() error {
 		return err
 	}
 
-	optionsPath := agent.GetApacheEtcDir("conf-available", "options-ssl-apache.conf")
+	optionsPath := assets.GetApacheEtcDir("conf-available", "options-ssl-apache.conf")
 	optionsFile := agent.File{
 		Task:    "write",
 		Path:    optionsPath,
@@ -232,7 +231,7 @@ func (cfg *Config) ApacheVhost() error {
 	}
 
 	vhostName := fmt.Sprintf("06-%s.conf", cfg.FQDN())
-	vhostPath := agent.GetApacheEtcDir("sites-available", vhostName)
+	vhostPath := assets.GetApacheEtcDir("sites-available", vhostName)
 	vhostFile := agent.File{
 		Task:    "write",
 		Path:    vhostPath,

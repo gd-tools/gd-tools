@@ -9,9 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 )
 
 const (
@@ -71,12 +70,12 @@ func (wp *WordPress) ServerAlias() string {
 }
 
 func (wp *WordPress) RootDir() string {
-	return releases.GetToolsDir("data", WordPressName, wp.Name())
+	return assets.GetToolsDir("data", WordPressName, wp.Name())
 }
 
 func (wp *WordPress) SocketPath() string {
 	name := fmt.Sprintf("php%s-wordpress-%s.sock", wp.PhpVersion, wp.Name())
-	return releases.GetRunDir("php", name)
+	return assets.GetRunDir("php", name)
 }
 
 func (wp *WordPress) ConfigPath() string {
@@ -92,7 +91,7 @@ func (wp *WordPress) BaseDir(paths ...string) string {
 }
 
 func (wp *WordPress) LogsDir(paths ...string) string {
-	logsDir := releases.GetToolsDir("logs", WordPressName, wp.Name())
+	logsDir := assets.GetToolsDir("logs", WordPressName, wp.Name())
 	if len(paths) == 0 {
 		return logsDir
 	}
@@ -106,11 +105,11 @@ func (wp *WordPress) VhostPath() string {
 
 func (wp *WordPress) HookPath() string {
 	name := fmt.Sprintf("backup-pre-%s-%s", WordPressName, wp.Name())
-	return releases.GetToolsDir("data", "hooks", name)
+	return assets.GetToolsDir("data", "hooks", name)
 }
 
 func (wp *WordPress) CertDir() string {
-	return releases.GetToolsDir("data", "certs", wp.FQDN())
+	return assets.GetToolsDir("data", "certs", wp.FQDN())
 }
 
 func (wp *WordPress) CertificateList() (string, []string) {
@@ -143,9 +142,17 @@ func (wp *WordPress) NameList() []string {
 	return list
 }
 
+func (wp *WordPress) SaltEntry(num int) string {
+	return fmt.Sprintf("%s_%d", wp.Salt, num)
+}
+
 func (wp *WordPress) CronPath() string {
 	name := WordPressName + "_" + wp.Name()
-	return releases.GetEtcDir("cron.d", name)
+	return assets.GetEtcDir("cron.d", name)
+}
+
+func (wp *WordPress) WP_CLI_Path() string {
+	return assets.GetBinDir("wp-" + wp.Name())
 }
 
 func LoadWordPressList(update *WordPress) (*WordPressList, error) {
@@ -279,11 +286,15 @@ func (cfg *Config) DeployWordPress(wp *WordPress) error {
 		return err
 	}
 
+	if err := cfg.WordPressCrontab(wp); err != nil {
+		return err
+	}
+
 	if err := cfg.WordPress_DNS(wp); err != nil {
 		return err
 	}
 
-	if err := cfg.WordPressExtras(wp); err != nil {
+	if err := cfg.WordPressWpCli(wp); err != nil {
 		return err
 	}
 
@@ -294,12 +305,7 @@ func (cfg *Config) DeployWordPress(wp *WordPress) error {
 func (cfg *Config) WordPressDownload(wp *WordPress) error {
 	req := cfg.NewRequest()
 
-	cat, err := releases.Load()
-	if err != nil {
-		return err
-	}
-
-	_, wpRel, err := cat.Get(WordPressName, wp.Version)
+	_, wpRel, err := cfg.Catalog.Get(WordPressName, wp.Version)
 	if err != nil {
 		return err
 	}
@@ -321,16 +327,12 @@ func (cfg *Config) WordPressDownload(wp *WordPress) error {
 func (cfg *Config) WordPressExtract(wp *WordPress) error {
 	req := cfg.NewRequest()
 
-	cat, err := releases.Load()
-	if err != nil {
-		return err
-	}
-	_, rel, err := cat.Get(WordPressName, wp.Version)
+	_, wpRel, err := cfg.Catalog.Get(WordPressName, wp.Version)
 	if err != nil {
 		return err
 	}
 
-	downloadDir := releases.GetDownloadsDir(rel.Download.Filename)
+	downloadDir := assets.GetDownloadsDir(wpRel.Download.Filename)
 	extract := agent.File{
 		Task:   "extract",
 		Path:   downloadDir,
@@ -378,15 +380,14 @@ func (cfg *Config) WordPressLogsDir(wp *WordPress) error {
 func (cfg *Config) WordPress_SQL(wp *WordPress) error {
 	req := cfg.NewRequest()
 
-	sqlTmpl := filepath.Join(WordPressName, "create.sql")
-	sqlStmts, err := templates.SQL(sqlTmpl, cfg.Verbose, wp)
+	sqlStmts, err := templates.SQL("wordpress/create.sql", cfg.Verbose, wp)
 	if err != nil {
 		return err
 	}
 
 	sql := agent.MySQL{
 		Stmts:   sqlStmts,
-		Comment: fmt.Sprintf("create %s (%s) tables", WordPressName, wp.FQDN()),
+		Comment: fmt.Sprintf("create wordpress (%s) tables", wp.FQDN()),
 	}
 	req.MySQLs = append(req.MySQLs, &sql)
 
@@ -400,8 +401,7 @@ func (cfg *Config) WordPress_SQL(wp *WordPress) error {
 func (cfg *Config) WordPressBackupHook(wp *WordPress) error {
 	req := cfg.NewRequest()
 
-	hookPath := filepath.Join(WordPressName, "backup")
-	hookContent, err := templates.Parse(hookPath, cfg.Verbose, wp)
+	hookContent, err := assets.Render("wordpress/backup", wp)
 	if err != nil {
 		return err
 	}
@@ -426,43 +426,23 @@ func (cfg *Config) WordPressBackupHook(wp *WordPress) error {
 func (cfg *Config) WordPressConfig(wp *WordPress) error {
 	req := cfg.NewRequest()
 
-	var confTmpl []byte
-	var confPath, confUser string
-	var err error
-	switch WordPressName {
-	case "wbce":
-		confTmpl, err = templates.Parse("wbce/config.php", cfg.Verbose, wp)
-		confPath = wp.BaseDir("config.php")
-		confUser = "www-data"
-	case "wordpress":
-		confTmpl, err = templates.Parse("wordpress/wp-config.php", cfg.Verbose, wp)
-		confPath = wp.BaseDir("wp-config.php")
-		confUser = "www-data"
-	case "mediawiki":
-		// no template here; LocalSettings.php is created by the installer on Prod
-		confTmpl = nil
-	default:
-		return fmt.Errorf("unknown WordPress product '%s'", WordPressName)
-	}
+	confTmpl, err := assets.Render("wordpress/wp-config.php", wp)
 	if err != nil {
 		return err
 	}
 
-	if len(confTmpl) > 0 {
-		confFile := agent.File{
-			Task:    "write",
-			Path:    confPath,
-			Content: confTmpl,
-			Mode:    "0644",
-			User:    confUser,
-			Group:   confUser,
-			Service: "apache2",
-		}
-		req.AddFile(&confFile)
+	confFile := agent.File{
+		Task:    "write",
+		Path:    wp.BaseDir("wp-config.php"),
+		Content: confTmpl,
+		Mode:    "0644",
+		User:    "www-data",
+		Group:   "www-data",
+		Service: "apache2",
 	}
+	req.AddFile(&confFile)
 
-	poolName := filepath.Join(WordPressName, "php-fpm-pool.conf")
-	poolTmpl, err := templates.Parse(poolName, cfg.Verbose, wp)
+	poolTmpl, err := assets.Render("wordpress/php-fpm-pool.conf", wp)
 	if err != nil {
 		return err
 	}
@@ -478,6 +458,31 @@ func (cfg *Config) WordPressConfig(wp *WordPress) error {
 		Service: cfg.PhpFpmService(),
 	}
 	req.AddFile(&poolFile)
+
+	if err := req.Send(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cfg *Config) WordPressCrontab(wp *WordPress) error {
+	req := cfg.NewRequest()
+
+	cronTmpl, err := assets.Render("wordpress/cron.d", wp)
+	if err != nil {
+		return err
+	}
+
+	cronFile := agent.File{
+		Task:    "write",
+		Path:    wp.CronPath(),
+		Content: cronTmpl,
+		Mode:    "0644",
+		User:    "root",
+		Group:   "root",
+	}
+	req.AddFile(&cronFile)
 
 	if err := req.Send(); err != nil {
 		return err
@@ -540,8 +545,7 @@ func (cfg *Config) WordPress_DNS(wp *WordPress) error {
 func (cfg *Config) WordPressSetupVhost(wp *WordPress) error {
 	req := cfg.NewRequest()
 
-	vhostTmpl := filepath.Join(WordPressName, "vhost.conf")
-	vhostContent, err := templates.Parse(vhostTmpl, cfg.Verbose, wp)
+	vhostTmpl, err := assets.Render("wordpress/vhost.conf", wp)
 	if err != nil {
 		return err
 	}
@@ -549,9 +553,10 @@ func (cfg *Config) WordPressSetupVhost(wp *WordPress) error {
 	vhostFile := agent.File{
 		Task:    "write",
 		Path:    wp.VhostPath(),
-		Content: vhostContent,
+		Content: vhostTmpl,
 	}
 	req.AddFile(&vhostFile)
+
 	req.AddService("apache2")
 
 	if err := req.Send(); err != nil {
@@ -561,17 +566,10 @@ func (cfg *Config) WordPressSetupVhost(wp *WordPress) error {
 	return nil
 }
 
-func (wp *WordPress) SaltEntry(num int) string {
-	return fmt.Sprintf("%s_%d", wp.Salt, num)
-}
+func (cfg *Config) WordPressWpCli(wp *WordPress) error {
+	wpSrc := assets.GetBinDir("gd-wp-cli")
+	wpDst := assets.GetBinDir("wp-" + wp.Name())
 
-func (wp *WordPress) WP_CLI_Path() string {
-	return releases.GetBinDir("wp-" + wp.Name())
-}
-
-func (cfg *Config) WordPressExtras(wp *WordPress) error {
-	wpSrc := releases.GetBinDir("gd-wp-cli")
-	wpDst := releases.GetBinDir("wp-" + wp.Name())
 	if _, err := cfg.LocalCommand(
 		"rsync",
 		cfg.RsyncFlags(),
@@ -581,26 +579,6 @@ func (cfg *Config) WordPressExtras(wp *WordPress) error {
 		cfg.RootUser()+":"+wpDst,
 	); err != nil {
 		return fmt.Errorf("failed to install %s: %w", wpDst, err)
-	}
-
-	req := cfg.NewRequest()
-
-	cronTmpl, err := templates.Parse("wordpress/cron.d", cfg.Verbose, wp)
-	if err != nil {
-		return err
-	}
-	cronFile := agent.File{
-		Task:    "write",
-		Path:    wp.CronPath(),
-		Content: cronTmpl,
-		Mode:    "0644",
-		User:    "root",
-		Group:   "root",
-	}
-	req.AddFile(&cronFile)
-
-	if err := req.Send(); err != nil {
-		return err
 	}
 
 	return nil

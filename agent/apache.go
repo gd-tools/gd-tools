@@ -6,28 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 )
-
-func GetApacheToolsDir(paths ...string) string {
-	toolsDir := releases.GetToolsDir("data", "apache")
-	if len(paths) == 0 {
-		return toolsDir
-	}
-	return filepath.Join(append([]string{toolsDir}, paths...)...)
-}
-
-func GetApacheEtcDir(paths ...string) string {
-	etcDir := releases.GetEtcDir("apache2")
-	if len(paths) == 0 {
-		return etcDir
-	}
-	return filepath.Join(append([]string{etcDir}, paths...)...)
-}
 
 func (file *File) IsApacheAvailable() (string, string, bool) {
 	for _, kind := range []string{"conf", "mods", "sites"} {
-		dir := GetApacheEtcDir(kind + "-available/")
+		dir := assets.GetApacheEtcDir(kind + "-available/")
 		if module, ok := strings.CutPrefix(file.Path, dir); ok {
 			return kind, module, true
 		}
@@ -37,8 +21,8 @@ func (file *File) IsApacheAvailable() (string, string, bool) {
 }
 
 func (file *File) ApacheEnable(kind, module string) error {
-	src := GetApacheEtcDir(kind+"-available", module)
-	dest := GetApacheEtcDir(kind+"-enabled", module)
+	src := assets.GetApacheEtcDir(kind+"-available", module)
+	dest := assets.GetApacheEtcDir(kind+"-enabled", module)
 
 	if _, err := os.Stat(src); os.IsNotExist(err) {
 		return fmt.Errorf("failed to create symlink for %s: %w", module, err)
@@ -56,7 +40,7 @@ func (file *File) ApacheEnable(kind, module string) error {
 }
 
 func (file *File) ApacheDisable(kind, module string) error {
-	enabled := GetApacheEtcDir(kind + "-enabled")
+	enabled := assets.GetApacheEtcDir(kind + "-enabled")
 
 	for _, ext := range []string{".load", ".conf"} {
 		dest := filepath.Join(enabled, module+ext)

@@ -3,8 +3,7 @@
 VERSION   := $(shell git describe --tags --always 2>/dev/null || echo "dev")
 
 SRC       := $(shell find . -name '*.go')
-ASSETS    := $(shell find assets/ -type f)
-TEMPLATES := $(shell find templates/templates/ -type f)
+TEMPLATES := $(shell find assets/templates/ -type f)
 
 .PHONY: all gdt gd-tools gd-occ gd-wp-cli clean test completion pull push
 
@@ -18,9 +17,7 @@ gd-occ: bin/gd-occ
 
 gd-wp-cli: bin/gd-wp-cli
 
-bin/gdt: $(SRC) $(ASSETS) $(TEMPLATES)
-	@mkdir -p templates/templates/assets
-	cp -a assets/* templates/templates/assets/
+bin/gdt: $(SRC) $(TEMPLATES)
 	go mod tidy
 	go fmt ./...
 	go vet ./...

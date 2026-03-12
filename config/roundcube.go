@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
 	"github.com/gd-tools/gd-tools/email"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 	"github.com/gd-tools/gd-tools/utils"
 )
 
@@ -21,7 +20,7 @@ type Roundcube struct {
 	Password   string
 	DesKey     string
 	DirName    string
-	Download   *releases.Download
+	Download   *assets.Download
 }
 
 func (rc *Roundcube) WebMail() string {
@@ -29,7 +28,7 @@ func (rc *Roundcube) WebMail() string {
 }
 
 func (rc *Roundcube) RootDir() string {
-	return releases.GetToolsDir("data", "roundcube", rc.Name)
+	return assets.GetToolsDir("data", "roundcube", rc.Name)
 }
 
 func (rc *Roundcube) BaseDir() string {
@@ -37,16 +36,16 @@ func (rc *Roundcube) BaseDir() string {
 }
 
 func (rc *Roundcube) CertDir() string {
-	return releases.GetToolsDir("data", "certs", rc.WebMail())
+	return assets.GetToolsDir("data", "certs", rc.WebMail())
 }
 
 func (rc *Roundcube) LogsDir() string {
-	return releases.GetToolsDir("logs", "roundcube", rc.Name)
+	return assets.GetToolsDir("logs", "roundcube", rc.Name)
 }
 
 func (rc *Roundcube) SocketPath() string {
 	name := fmt.Sprintf("php%s-roundcube-%s.sock", rc.PhpVersion, rc.Name)
-	return releases.GetRunDir("php", name)
+	return assets.GetRunDir("php", name)
 }
 
 func (cfg *Config) DeployRoundcube() error {
@@ -173,7 +172,7 @@ func (cfg *Config) RoundcubeExtract(rc *Roundcube) error {
 
 	extract := agent.File{
 		Task:   "extract",
-		Path:   releases.GetDownloadsDir(rc.Download.Filename),
+		Path:   assets.GetDownloadsDir(rc.Download.Filename),
 		Target: rc.RootDir(),
 		Mode:   "0755",
 		User:   "root",
@@ -218,14 +217,16 @@ func (cfg *Config) RoundcubeSQL(rc *Roundcube) error {
 	req := cfg.NewRequest()
 
 	cfgTmpl := filepath.Join("roundcube", "create_config.sql")
-	stmts, err := templates.SQL(cfgTmpl, cfg.Verbose, rc)
+	stmts, err := assets.SQL(cfgTmpl, rc)
 	if err != nil {
 		return err
 	}
+
 	entry := agent.MySQL{
 		Stmts:   stmts,
 		Comment: "create roundcube (vmail) tables",
 	}
+
 	loader := agent.MySQL{
 		DbName:  "rc_" + rc.Name,
 		DbPath:  filepath.Join(rc.BaseDir(), "SQL", "mysql.initial.sql"),
@@ -246,31 +247,31 @@ func (cfg *Config) RoundcubeSQL(rc *Roundcube) error {
 func (cfg *Config) RoundcubeConfigFiles(rc *Roundcube) error {
 	req := cfg.NewRequest()
 
-	configTmpl, err := templates.Parse("roundcube/config.inc.php", cfg.Verbose, rc)
+	configContent, err := assets.Render("roundcube/config.inc.php", rc)
 	if err != nil {
 		return err
 	}
 	configFile := agent.File{
 		Task:    "write",
 		Path:    filepath.Join(rc.BaseDir(), "config", "config.inc.php"),
-		Content: configTmpl,
+		Content: configContent,
 		Mode:    "0644",
 	}
 	req.AddFile(&configFile)
 
-	passwordTmpl, err := templates.Parse("roundcube/password.inc.php", cfg.Verbose, rc)
+	passwordContent, err := assets.Render("roundcube/password.inc.php", rc)
 	if err != nil {
 		return err
 	}
 	passwordFile := agent.File{
 		Task:    "write",
 		Path:    filepath.Join(rc.BaseDir(), "config", "password.inc.php"),
-		Content: passwordTmpl,
+		Content: passwordContent,
 		Mode:    "0644",
 	}
 	req.AddFile(&passwordFile)
 
-	poolTmpl, err := templates.Parse("roundcube/php-fpm-pool.conf", cfg.Verbose, rc)
+	poolContent, err := assets.Render("roundcube/php-fpm-pool.conf", rc)
 	if err != nil {
 		return err
 	}
@@ -278,7 +279,7 @@ func (cfg *Config) RoundcubeConfigFiles(rc *Roundcube) error {
 	poolFile := agent.File{
 		Task:    "write",
 		Path:    poolPath,
-		Content: poolTmpl,
+		Content: poolContent,
 		Mode:    "0644",
 		User:    "root",
 		Group:   "root",
@@ -296,6 +297,7 @@ func (cfg *Config) RoundcubeConfigFiles(rc *Roundcube) error {
 func (cfg *Config) RoundcubeHideInstaller(rc *Roundcube) error {
 	req := cfg.NewRequest()
 
+	// Hiding means removing access for www-data:www-data
 	installerTask := agent.File{
 		Task:  "process",
 		Path:  filepath.Join(rc.BaseDir(), "installer"),
@@ -315,12 +317,12 @@ func (cfg *Config) RoundcubeHideInstaller(rc *Roundcube) error {
 func (cfg *Config) RoundcubeSetupVhost(rc *Roundcube) error {
 	req := cfg.NewRequest()
 
-	vhostTmpl, err := templates.Parse("roundcube/vhost.conf", cfg.Verbose, rc)
+	vhostTmpl, err := assets.Render("roundcube/vhost.conf", rc)
 	if err != nil {
 		return err
 	}
 
-	vhostName := fmt.Sprintf("15-%s.conf", rc.WebMail())
+	vhostName := fmt.Sprintf("roundcube-%s.conf", rc.WebMail())
 	vhostPath := agent.GetApacheEtcDir("sites-available", vhostName)
 	vhostFile := agent.File{
 		Task:    "write",

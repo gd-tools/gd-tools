@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
 	"github.com/gd-tools/gd-tools/config"
-	"github.com/gd-tools/gd-tools/templates"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -66,8 +66,7 @@ func Run(c *cli.Context) error {
 	}
 
 	if _, err := os.Stat(config.RoutingName); err != nil || c.Bool("routing") {
-		tmpl := filepath.Join("assets", config.RoutingName)
-		content, err := templates.Load(tmpl, false)
+		content, err := assets.Render("assets/" + config.RoutingName)
 		if err != nil {
 			return fmt.Errorf("failed to load %s: %w", config.RoutingName, err)
 		}

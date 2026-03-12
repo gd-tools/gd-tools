@@ -8,15 +8,15 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
 	"github.com/gd-tools/gd-tools/email"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 	"github.com/gd-tools/gd-tools/utils"
 )
 
 const (
-	RoutingName = "routing.json"
+	RoutingName = "routing"
+	RoutingFile = RoutingName + ".json"
 )
 
 type Postfix struct {
@@ -65,7 +65,7 @@ func (cfg *Config) DeployPostfix() error {
 		HostName:   cfg.FQDN(),
 		DomainName: cfg.DomainName,
 		Password:   password,
-		CertDir:    releases.GetToolsDir("data", "certs", cfg.FQDN()),
+		CertDir:    assets.GetToolsDir("data", "certs", cfg.FQDN()),
 		VmailUID:   mailer.VmailUID,
 		VmailGID:   mailer.VmailGID,
 		MailPath:   mailer.MailPath,
@@ -100,6 +100,7 @@ func (cfg *Config) DeployPostfix() error {
 	cfg.AddFirewall("25/tcp")
 	cfg.AddFirewall("465/tcp")
 	cfg.AddFirewall("587/tcp")
+
 	if err := cfg.Save(); err != nil {
 		return err
 	}
@@ -111,39 +112,37 @@ func (cfg *Config) DeployPostfix() error {
 func (cfg *Config) PostfixTables() error {
 	req := cfg.NewRequest()
 
-	files := []string{
+	cfNames := []string{
 		"mailbox-domains.cf",
 		"mailbox-maps.cf",
 		"alias-maps.cf",
 	}
 
-	for _, name := range files {
-		tmpl := filepath.Join("postfix", name)
-		content, err := templates.Parse(tmpl, cfg.Verbose, cfg.Postfix)
+	for _, name := range cfNames {
+		cfTmpl, err := assets.Render("postfix/" + name, cfg.Postfix)
 		if err != nil {
 			return err
 		}
 
-		file := agent.File{
+		cfFile := agent.File{
 			Task:    "write",
-			Path:    releases.GetEtcDir("postfix", name),
-			Content: content,
+			Path:    assets.GetEtcDir("postfix", name),
+			Content: cfTmpl,
 			Mode:    "0644",
 			Service: "postfix",
 		}
-		req.AddFile(&file)
+		req.AddFile(&cfFile)
 	}
 
-	tmpl := filepath.Join("postfix", "create_tables.sql")
-	stmts, err := templates.SQL(tmpl, cfg.Verbose, cfg.Postfix)
+	sqlTmpl, err := assets.SQL("postfix", "create_tables.sql", cfg.Postfix)
 	if err != nil {
 		return err
 	}
-	entry := agent.MySQL{
-		Stmts:   stmts,
+	sqlCmd := agent.MySQL{
+		Stmts:   sqlTmpl,
 		Comment: "create postfix (vmail) tables",
 	}
-	req.MySQLs = append(req.MySQLs, &entry)
+	req.MySQLs = append(req.MySQLs, &sqlCmd)
 
 	if err := req.Send(); err != nil {
 		return err
@@ -168,11 +167,12 @@ func (cfg *Config) PostfixSASL() error {
 	// add more providers here
 
 	sort.Strings(lines)
-	content := strings.Join(lines, "\n") + "\n"
+
+	saslData := strings.Join(lines, "\n") + "\n"
 	file := agent.File{
 		Task:    "postmap",
-		Path:    releases.GetEtcDir("postfix", "sasl_passwd"),
-		Content: []byte(content),
+		Path:    assets.GetEtcDir("postfix", "sasl_passwd"),
+		Content: []byte(saslData),
 		Mode:    "0600",
 		Service: "postfix",
 	}
@@ -188,14 +188,14 @@ func (cfg *Config) PostfixSASL() error {
 func (cfg *Config) PostfixMaps() error {
 	req := cfg.NewRequest()
 
-	content, err := os.ReadFile(RoutingName)
+	content, err := os.ReadFile(RoutingFile)
 	if err != nil {
-		return fmt.Errorf("failed to read %s: %w", RoutingName, err)
+		return fmt.Errorf("failed to read %s: %w", RoutingFile, err)
 	}
 
 	var routing Routing
 	if err := json.Unmarshal(content, &routing); err != nil {
-		return fmt.Errorf("failed to unmarshal %s: %w", RoutingName, err)
+		return fmt.Errorf("failed to unmarshal %s: %w", RoutingFile, err)
 	}
 
 	var transportLines []string
@@ -216,7 +216,7 @@ func (cfg *Config) PostfixMaps() error {
 	transportData := strings.Join(transportLines, "\n") + "\n"
 	transportFile := agent.File{
 		Task:    "postmap",
-		Path:    releases.GetEtcDir("postfix", "transport"),
+		Path:    assets.GetEtcDir("postfix", "transport"),
 		Content: []byte(transportData),
 		Mode:    "0600",
 		Service: "postfix",
@@ -233,7 +233,7 @@ func (cfg *Config) PostfixMaps() error {
 	policyData := strings.Join(policyLines, "\n") + "\n"
 	policyFile := agent.File{
 		Task:    "postmap",
-		Path:    releases.GetEtcDir("postfix", "tls_policy"),
+		Path:    assets.GetEtcDir("postfix", "tls_policy"),
 		Content: []byte(policyData),
 		Mode:    "0600",
 		Service: "postfix",
@@ -250,21 +250,20 @@ func (cfg *Config) PostfixMaps() error {
 func (cfg *Config) PostfixMain() error {
 	req := cfg.NewRequest()
 
-	tmpl := filepath.Join("postfix", "main.cf")
-	content, err := templates.Parse(tmpl, cfg.Verbose, cfg.Postfix)
+	mainContent, err := assets.Render("postfix/main.cf", cfg.Postfix)
 	if err != nil {
 		return err
 	}
 
-	file := agent.File{
+	mainFile := agent.File{
 		Task:    "write",
-		Path:    releases.GetEtcDir("postfix", "main.cf"),
-		Content: content,
+		Path:    assets.GetEtcDir("postfix", "main.cf"),
+		Content: mainContent,
 		Backup:  true,
 		Mode:    "0644",
 		Service: "postfix",
 	}
-	req.AddFile(&file)
+	req.AddFile(&mainFile)
 
 	req.AddFirewall("25/tcp")
 	req.AddFirewall("465/tcp")
@@ -280,21 +279,20 @@ func (cfg *Config) PostfixMain() error {
 func (cfg *Config) PostfixMaster() error {
 	req := cfg.NewRequest()
 
-	tmpl := filepath.Join("postfix", "master.cf")
-	content, err := templates.Parse(tmpl, cfg.Verbose, cfg.Postfix)
+	masterTmpl, err := assets.Render("postfix/master.cf", cfg.Postfix)
 	if err != nil {
 		return err
 	}
 
-	file := agent.File{
+	masterFile := agent.File{
 		Task:    "write",
-		Path:    releases.GetEtcDir("postfix", "master.cf"),
-		Content: content,
+		Path:    assets.GetEtcDir("postfix", "master.cf"),
+		Content: masterTmpl,
 		Backup:  true,
 		Mode:    "0644",
 		Service: "postfix",
 	}
-	req.AddFile(&file)
+	req.AddFile(&masterFile)
 
 	if err := req.Send(); err != nil {
 		return err

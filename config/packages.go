@@ -1,11 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"path/filepath"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 )
 
 func (cfg *Config) DeployPackages(upgrade bool) error {
@@ -41,15 +41,14 @@ func (cfg *Config) PackagesRepos() error {
 	req := cfg.NewRequest()
 
 	for _, name := range cfg.Baseline.Repos {
-		keyName := name + ".gpg"
-		keyTmpl := filepath.Join("apt", cfg.BaselineName, "keys", keyName)
-		keyData, err := templates.Load(keyTmpl, cfg.Verbose)
+		keyTmpl := fmt.Sprintf("apt/%s/keys/%s.gpg", cfg.BaselineName, name)
+		keyData, err := assets.Render(keyTmpl, nil)
 		if err != nil {
 			return err
 		}
 		req.AddFile(&agent.File{
 			Task:    "write",
-			Path:    releases.GetEtcDir("apt", "keyrings", keyName),
+			Path:    assets.GetEtcDir("apt", "keyrings", keyName),
 			Content: keyData,
 			Mode:    "0644",
 		})
@@ -57,19 +56,19 @@ func (cfg *Config) PackagesRepos() error {
 		srcName := name + ".sources"
 		oldName := name + ".list"
 		srcTmpl := filepath.Join("apt", cfg.BaselineName, "sources", srcName)
-		srcData, err := templates.Load(srcTmpl, cfg.Verbose)
+		srcData, err := assets.Render(srcTmpl, nil)
 		if err != nil {
 			return err
 		}
 		req.AddFile(&agent.File{
 			Task:    "write",
-			Path:    releases.GetEtcDir("apt", "sources.list.d", srcName),
+			Path:    assets.GetEtcDir("apt", "sources.list.d", srcName),
 			Content: srcData,
 			Mode:    "0644",
 		})
 		req.AddFile(&agent.File{
 			Task: "delete",
-			Path: releases.GetEtcDir("apt", "sources.list.d", oldName),
+			Path: assets.GetEtcDir("apt", "sources.list.d", oldName),
 		})
 	}
 

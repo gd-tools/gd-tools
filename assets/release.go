@@ -1,9 +1,14 @@
-package releases
+package assets
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/gd-tools/gd-tools/utils"
+)
+
+const (
+	ReleasesFile = "releases.json"
 )
 
 // Baseline describes the platform runtime environment (for recovery).
@@ -37,6 +42,26 @@ type Product struct {
 type Catalog struct {
 	Baselines []Baseline `json:"baselines"`
 	Products  []Product  `json:"products"`
+}
+
+// Load reads the release catalog from assets/templates/system/releases.json.
+func LoadCatalog() (*Catalog, error) {
+	releasesPath := filepath.Join("assets", ReleasesFile)
+	data, err := Render("system/" + ReleasesFile, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load %s: %w", ReleasesFile, err)
+	}
+
+	var catalog Catalog
+	if err := json.Unmarshal(data, &catalog); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal %s: %w", ReleasesFile, err)
+	}
+
+	if err := catalog.Validate(); err != nil {
+		return nil, fmt.Errorf("failed to validate %s: %w", ReleasesFile, err)
+	}
+
+	return &catalog, nil
 }
 
 // GetBaseline provides the entry point for the system generation.

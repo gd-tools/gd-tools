@@ -9,13 +9,13 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 )
 
 const (
-	RedirectName = "redirect.json"
+	RedirectName = "redirect"
+	RedirectFile = RedirectName + ".json"
 )
 
 type Redirect struct {
@@ -54,11 +54,11 @@ func (redir *Redirect) ServerAlias() string {
 }
 
 func (redir *Redirect) LogsDir() string {
-	return releases.GetToolsDir("logs", "redirect", redir.Name())
+	return assets.GetToolsDir("logs", "redirect", redir.Name())
 }
 
 func (redir *Redirect) CertDir() string {
-	return releases.GetToolsDir("data", "certs", redir.FQDN())
+	return assets.GetToolsDir("data", "certs", redir.FQDN())
 }
 
 func (redir *Redirect) VhostPath() string {
@@ -85,16 +85,16 @@ func (redir *Redirect) CertificateList() (string, []string) {
 func LoadRedirectList() (*RedirectList, error) {
 	var list RedirectList
 
-	content, err := os.ReadFile(RedirectName)
+	content, err := os.ReadFile(RedirectFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &list, nil
 		}
-		return nil, fmt.Errorf("failed to read %s: %w", RedirectName, err)
+		return nil, fmt.Errorf("failed to read %s: %w", RedirectFile, err)
 	}
 
 	if err := json.Unmarshal(content, &list); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal %s: %w", RedirectName, err)
+		return nil, fmt.Errorf("failed to unmarshal %s: %w", RedirectFile, err)
 	}
 
 	sort.Slice(list.Entries, func(i, j int) bool {
@@ -111,16 +111,16 @@ func (list *RedirectList) Save() error {
 
 	content, err := json.MarshalIndent(list, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", RedirectName, err)
+		return fmt.Errorf("failed to marshal %s: %w", RedirectFile, err)
 	}
 
-	existing, err := os.ReadFile(RedirectName)
+	existing, err := os.ReadFile(RedirectFile)
 	if err == nil && bytes.Equal(existing, content) {
 		return nil
 	}
 
-	if err := os.WriteFile(RedirectName, content, 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", RedirectName, err)
+	if err := os.WriteFile(RedirectFile, content, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", RedirectFile, err)
 	}
 
 	return nil
@@ -213,8 +213,7 @@ func (cfg *Config) RedirectLogsDir(redir *Redirect) error {
 func (cfg *Config) RedirectSetupVhost(redir *Redirect) error {
 	req := cfg.NewRequest()
 
-	vhostTmpl := filepath.Join("redirect", "vhost.conf")
-	vhostContent, err := templates.Parse(vhostTmpl, cfg.Verbose, redir)
+	content, err := assets.Render("redirect/vhost.conf", redir)
 	if err != nil {
 		return err
 	}
@@ -226,7 +225,7 @@ func (cfg *Config) RedirectSetupVhost(redir *Redirect) error {
 	vhostFile := agent.File{
 		Task:    "write",
 		Path:    redir.VhostPath(),
-		Content: vhostContent,
+		Content: content,
 	}
 	req.AddFile(&vhostFile)
 	req.AddService("apache2")

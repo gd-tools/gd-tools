@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gd-tools/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/urfave/cli/v2"
 )
 
@@ -49,8 +49,7 @@ func Run(c *cli.Context) error {
 		Name: name,
 	}
 
-	bashPath := filepath.Join("assets", "completion.bash")
-	out, err := templates.Parse(bashPath, false, data)
+	out, err := assets.Parse("system/completion.bash", data)
 	if err != nil {
 		return err
 	}

@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 )
 
 func (cfg *Config) DeployNextcloud(nc *agent.Nextcloud) error {
@@ -77,8 +76,8 @@ func (cfg *Config) DeployNextcloud(nc *agent.Nextcloud) error {
 	}
 
 	// if all went well, install the occ-<name> command
-	occSrc := releases.GetBinDir("gd-occ")
-	occDst := releases.GetBinDir("occ-" + nc.Name)
+	occSrc := assets.GetBinDir("gd-occ")
+	occDst := assets.GetBinDir("occ-" + nc.Name)
 	if _, err := cfg.LocalCommand(
 		"rsync",
 		cfg.RsyncFlags(),
@@ -111,7 +110,7 @@ func (cfg *Config) NextcloudExtract(nc *agent.Nextcloud) error {
 
 	extract := agent.File{
 		Task:   "extract",
-		Path:   releases.GetDownloadsDir(nc.Download.Filename),
+		Path:   assets.GetDownloadsDir(nc.Download.Filename),
 		Target: nc.RootDir(),
 		Mode:   "0755",
 		User:   "root",
@@ -158,7 +157,7 @@ func (cfg *Config) NextcloudSQL(nc *agent.Nextcloud) error {
 	req := cfg.NewRequest()
 
 	sqlTmpl := filepath.Join("nextcloud", "create.sql")
-	sqlStmts, err := templates.SQL(sqlTmpl, cfg.Verbose, nc)
+	sqlStmts, err := assets.SQL(sqlTmpl, nc)
 	if err != nil {
 		return err
 	}
@@ -179,7 +178,7 @@ func (cfg *Config) NextcloudSQL(nc *agent.Nextcloud) error {
 func (cfg *Config) NextcloudBackupHook(nc *agent.Nextcloud) error {
 	req := cfg.NewRequest()
 
-	hookTmpl, err := templates.Parse("nextcloud/backup", cfg.Verbose, nc)
+	hookTmpl, err := assets.Render("nextcloud/backup", nc)
 	if err != nil {
 		return err
 	}
@@ -208,14 +207,14 @@ func (cfg *Config) NextcloudSetupConfig(nc *agent.Nextcloud, key string) error {
 	req.NextConf = key
 
 	if key == "maintenance:install" {
-		content, err := json.MarshalIndent(nc, "", "  ")
+		configTmpl, err := json.MarshalIndent(nc, "", "  ")
 		if err != nil {
 			return err
 		}
 		configFile := agent.File{
 			Task:    "write",
 			Path:    nc.ConfigPath(),
-			Content: content,
+			Content: configTmpl,
 			Mode:    "0600",
 			User:    "root",
 			Group:   "root",
@@ -233,7 +232,7 @@ func (cfg *Config) NextcloudSetupConfig(nc *agent.Nextcloud, key string) error {
 func (cfg *Config) NextcloudCronJob(nc *agent.Nextcloud) error {
 	req := cfg.NewRequest()
 
-	cronTmpl, err := templates.Parse("nextcloud/cron.d", cfg.Verbose, nc)
+	cronTmpl, err := assets.Render("nextcloud/cron.d", nc)
 	if err != nil {
 		return err
 	}
@@ -258,7 +257,7 @@ func (cfg *Config) NextcloudCronJob(nc *agent.Nextcloud) error {
 func (cfg *Config) NextcloudSetupPool(nc *agent.Nextcloud) error {
 	req := cfg.NewRequest()
 
-	poolTmpl, err := templates.Parse("nextcloud/php-fpm-pool.conf", cfg.Verbose, nc)
+	poolTmpl, err := assets.Render("nextcloud/php-fpm-pool.conf", nc)
 	if err != nil {
 		return err
 	}
@@ -285,7 +284,7 @@ func (cfg *Config) NextcloudSetupPool(nc *agent.Nextcloud) error {
 func (cfg *Config) NextcloudVhost(nc *agent.Nextcloud) error {
 	req := cfg.NewRequest()
 
-	vhostTmpl, err := templates.Parse("nextcloud/vhost.conf", cfg.Verbose, nc)
+	vhostTmpl, err := assets.Render("nextcloud/vhost.conf", nc)
 	if err != nil {
 		return err
 	}

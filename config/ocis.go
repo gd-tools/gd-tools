@@ -7,9 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 )
 
 const (
@@ -33,11 +32,11 @@ func (oc *OCIS) FQDN() string {
 }
 
 func (oc *OCIS) ExecPath() string {
-	return releases.GetBinDir("ocis")
+	return assets.GetBinDir("ocis")
 }
 
 func (oc *OCIS) RootDir(paths ...string) string {
-	rootDir := releases.GetToolsDir("data", "ocis")
+	rootDir := assets.GetToolsDir("data", "ocis")
 	if len(paths) == 0 {
 		return rootDir
 	}
@@ -65,11 +64,11 @@ func (oc *OCIS) ClientDir(paths ...string) string {
 }
 
 func (oc *OCIS) CertDir() string {
-	return releases.GetToolsDir("data", "certs", oc.FQDN())
+	return assets.GetToolsDir("data", "certs", oc.FQDN())
 }
 
 func (oc *OCIS) LogsDir() string {
-	return releases.GetToolsDir("logs", "ocis")
+	return assets.GetToolsDir("logs", "ocis")
 }
 
 func LoadOCIS() (*OCIS, error) {
@@ -220,8 +219,7 @@ func (cfg *Config) OCISConfig(oc *OCIS) error {
 	}
 	req.AddFile(&configMkdir)
 
-	envTmpl := filepath.Join("ocis", "ocis.env")
-	envData, err := templates.Parse(envTmpl, cfg.Verbose, oc)
+	envTmpl, err := assets.Render("ocis/ocis.env", oc)
 	if err != nil {
 		return err
 	}
@@ -229,7 +227,7 @@ func (cfg *Config) OCISConfig(oc *OCIS) error {
 	envFile := agent.File{
 		Task:    "write",
 		Path:    envPath,
-		Content: envData,
+		Content: envTmpl,
 		Mode:    "0640",
 		User:    "ocis",
 		Group:   "ocis",
@@ -285,16 +283,15 @@ func (cfg *Config) OCISConfig(oc *OCIS) error {
 func (cfg *Config) OCISService(oc *OCIS) error {
 	req := cfg.NewRequest()
 
-	path := filepath.Join("ocis", "ocis.service")
-	content, err := templates.Parse(path, cfg.Verbose, oc)
+	svcTmpl, err := assets.Render("ocis/ocis.service", oc)
 	if err != nil {
 		return err
 	}
 
 	file := agent.File{
 		Task:    "write",
-		Path:    releases.GetEtcDir("systemd", "system", "ocis.service"),
-		Content: content,
+		Path:    assets.GetEtcDir("systemd", "system", "ocis.service"),
+		Content: svcTmpl,
 		Mode:    "0644",
 		Service: "ocis",
 	}
@@ -319,12 +316,12 @@ func (cfg *Config) OCISVhost(oc *OCIS) error {
 	}
 	req.AddFile(&logsMkdir)
 
-	vhostTmpl, err := templates.Parse("ocis/vhost.conf", cfg.Verbose, oc)
+	vhostTmpl, err := assets.Render("ocis/vhost.conf", oc)
 	if err != nil {
 		return err
 	}
-	vhostName := fmt.Sprintf("25-%s.conf", oc.FQDN())
-	vhostPath := agent.GetApacheEtcDir("sites-available", vhostName)
+	vhostName := fmt.Sprintf("ocis-%s.conf", oc.FQDN())
+	vhostPath := assets.GetApacheEtcDir("sites-available", vhostName)
 	vhostFile := agent.File{
 		Task:    "write",
 		Path:    vhostPath,

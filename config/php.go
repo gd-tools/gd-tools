@@ -3,13 +3,12 @@ package config
 import (
 	"path/filepath"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 )
 
 func (cfg *Config) PhpEtcDir(paths ...string) string {
-	phpDir := releases.GetEtcDir("php", cfg.Baseline.PHP)
+	phpDir := assets.GetEtcDir("php", cfg.Baseline.PHP)
 	if len(paths) == 0 {
 		return phpDir
 	}
@@ -17,7 +16,7 @@ func (cfg *Config) PhpEtcDir(paths ...string) string {
 }
 
 func (cfg *Config) PhpFpmPoolPath(name string) string {
-	return releases.GetEtcDir("php", cfg.Baseline.PHP, "fpm", "pool.d", name+".conf")
+	return assets.GetEtcDir("php", cfg.Baseline.PHP, "fpm", "pool.d", name+".conf")
 }
 
 func (cfg *Config) PhpFpmService() string {
@@ -29,7 +28,7 @@ func (cfg *Config) DeployPHP() error {
 
 	req := cfg.NewRequest()
 
-	content, err := templates.Parse("php/custom.ini", cfg.Verbose, cfg)
+	customTmpl, err := assets.Render("php/custom.ini", cfg)
 	if err != nil {
 		return err
 	}
@@ -47,7 +46,7 @@ func (cfg *Config) DeployPHP() error {
 		file := agent.File{
 			Task:    "write",
 			Path:    cfg.PhpEtcDir(name, "conf.d", "60-custom.ini"),
-			Content: content,
+			Content: customTmpl,
 			Mode:    "0644",
 			Service: service,
 		}

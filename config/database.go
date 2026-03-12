@@ -1,25 +1,26 @@
 package config
 
 import (
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 )
 
 func (cfg *Config) DeployDatabase() error {
 	cfg.Debug("Enter config/database.go")
 
 	req := cfg.NewRequest()
+
 	req.RedisPort = 6379
 
 	path := "mysql/mariadb.conf.d/90-server-port.cnf"
-	content, err := templates.Load(path, cfg.Verbose)
+	content, err := assets.Render(path, nil)
 	if err != nil {
 		return err
 	}
+
 	file := agent.File{
 		Task:    "write",
-		Path:    releases.GetEtcDir(path),
+		Path:    assets.GetEtcDir(path),
 		Content: content,
 		Mode:    "0644",
 		User:    "root",

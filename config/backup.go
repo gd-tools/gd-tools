@@ -7,14 +7,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 	"github.com/gd-tools/gd-tools/utils"
 )
 
 const (
-	BackupName = "backup.json"
+	BackupName = "backup"
+	BackupFile = BackupName + ".json"
 )
 
 type Backup struct {
@@ -36,8 +36,8 @@ func (bkup *Backup) CronLine() string {
 	return fmt.Sprintf("%d %d * * * root test -x %s && %s\n",
 		bkup.CronMinute,
 		bkup.CronHour,
-		releases.GetBinDir("bb.exec"),
-		releases.GetBinDir("bb.exec"),
+		assets.GetBinDir("bb.exec"),
+		assets.GetBinDir("bb.exec"),
 	)
 }
 
@@ -59,7 +59,7 @@ func (cfg *Config) DeployBackup() error {
 		}
 		privFile := agent.File{
 			Task:    "write",
-			Path:    releases.GetRootDir(".ssh", "id_rsa"),
+			Path:    assets.GetRootDir(".ssh", "id_rsa"),
 			Content: privContent,
 			Mode:    "0600",
 			User:    "root",
@@ -68,7 +68,7 @@ func (cfg *Config) DeployBackup() error {
 		req.AddFile(&privFile)
 		pubFile := agent.File{
 			Task:    "write",
-			Path:    releases.GetRootDir(".ssh", "id_rsa.pub"),
+			Path:    assets.GetRootDir(".ssh", "id_rsa.pub"),
 			Content: pubContent,
 			Mode:    "0600",
 			User:    "root",
@@ -76,7 +76,7 @@ func (cfg *Config) DeployBackup() error {
 		}
 		req.AddFile(&pubFile)
 	} else {
-		bkup.BorgRepo = releases.GetToolsDir("backup")
+		bkup.BorgRepo = assets.GetToolsDir("backup")
 		backupMkdir := agent.File{
 			Task:  "mkdir",
 			Path:  bkup.BorgRepo,
@@ -87,8 +87,8 @@ func (cfg *Config) DeployBackup() error {
 		req.AddFile(&backupMkdir)
 	}
 
-	bkup.DataDir = releases.GetToolsDir("data")
-	bkup.HookDir = releases.GetToolsDir("data", "hooks")
+	bkup.DataDir = assets.GetToolsDir("data")
+	bkup.HookDir = assets.GetToolsDir("data", "hooks")
 
 	bbFiles := []string{
 		"bb.check",
@@ -100,15 +100,14 @@ func (cfg *Config) DeployBackup() error {
 	}
 
 	for _, name := range bbFiles {
-		tmpl := filepath.Join("backup", name)
-		content, err := templates.Parse(tmpl, cfg.Verbose, bkup)
+		bbTmpl, err := assets.Render("backup/" + name, bkup)
 		if err != nil {
 			return err
 		}
 		file := agent.File{
 			Task:    "write",
-			Path:    releases.GetBinDir(name),
-			Content: content,
+			Path:    assets.GetBinDir(name),
+			Content: bbTmpl,
 			Mode:    "0500",
 			User:    "root",
 			Group:   "root",
@@ -118,7 +117,7 @@ func (cfg *Config) DeployBackup() error {
 
 	cronFile := agent.File{
 		Task:    "write",
-		Path:    releases.GetEtcDir("cron.d/borg-backup"),
+		Path:    assets.GetEtcDir("cron.d/borg-backup"),
 		Content: []byte(bkup.CronLine()),
 		Mode:    "0644",
 		User:    "root",
@@ -135,14 +134,14 @@ func (cfg *Config) DeployBackup() error {
 }
 
 func ReadBackup() (*Backup, error) {
-	content, err := os.ReadFile(BackupName)
+	content, err := os.ReadFile(BackupFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %w", BackupName, err)
+		return nil, fmt.Errorf("failed to read %s: %w", BackupFile, err)
 	}
 
 	var bkup Backup
 	if err := json.Unmarshal(content, &bkup); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal %s: %w", BackupName, err)
+		return nil, fmt.Errorf("failed to unmarshal %s: %w", BackupFile, err)
 	}
 
 	return &bkup, nil
@@ -151,16 +150,16 @@ func ReadBackup() (*Backup, error) {
 func (bkup *Backup) Save() error {
 	content, err := json.MarshalIndent(bkup, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", BackupName, err)
+		return fmt.Errorf("failed to marshal %s: %w", BackupFile, err)
 	}
 
-	existing, err := os.ReadFile(BackupName)
+	existing, err := os.ReadFile(BackupFile)
 	if err == nil && bytes.Equal(existing, content) {
 		return nil
 	}
 
-	if err := os.WriteFile(BackupName, content, 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", BackupName, err)
+	if err := os.WriteFile(BackupFile, content, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", BackupFile, err)
 	}
 
 	return nil
