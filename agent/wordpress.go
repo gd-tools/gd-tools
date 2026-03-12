@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 type WordPress struct {
@@ -18,11 +18,11 @@ type WordPress struct {
 }
 
 func (wp *WordPress) BaseDir() string {
-	return releases.GetToolsDir("data", "wordpress", wp.Instance, wp.DirName)
+	return assets.GetToolsDir("data", "wordpress", wp.Instance, wp.DirName)
 }
 
 func (wp *WordPress) LogsDir() string {
-	return releases.GetToolsDir("logs", "wordpress", wp.Instance)
+	return assets.GetToolsDir("logs", "wordpress", wp.Instance)
 }
 
 func (wp *WordPress) RunWPCLI(resp *Response, cmd string, args ...string) (string, error) {
@@ -33,7 +33,7 @@ func (wp *WordPress) RunWPCLI(resp *Response, cmd string, args ...string) (strin
 	uid, _ := strconv.Atoi(usr.Uid)
 	gid, _ := strconv.Atoi(usr.Gid)
 
-	wpPath := releases.GetBinDir("wp-cli")
+	wpPath := assets.GetBinDir("wp-cli")
 	wpArgs := []string{cmd}
 	wpArgs = append(wpArgs, args...)
 	wpArgs = append(wpArgs, "--path="+wp.BaseDir())

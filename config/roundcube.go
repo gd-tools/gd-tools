@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/email"
 	"github.com/gd-tools/gd-tools/utils"
 )
@@ -323,7 +323,7 @@ func (cfg *Config) RoundcubeSetupVhost(rc *Roundcube) error {
 	}
 
 	vhostName := fmt.Sprintf("roundcube-%s.conf", rc.WebMail())
-	vhostPath := agent.GetApacheEtcDir("sites-available", vhostName)
+	vhostPath := assets.GetApacheEtcDir("sites-available", vhostName)
 	vhostFile := agent.File{
 		Task:    "write",
 		Path:    vhostPath,

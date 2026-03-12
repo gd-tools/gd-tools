@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 const (

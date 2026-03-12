@@ -5,9 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/email"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 )
 
 type Mailer struct {
@@ -25,7 +24,7 @@ func LoadMailer() (*Mailer, error) {
 	mailer := Mailer{
 		VmailUID: vmailUser.UID,
 		VmailGID: vmailUser.GID,
-		MailPath: releases.GetToolsDir("data", "vmail"),
+		MailPath: assets.GetToolsDir("data", "vmail"),
 	}
 
 	return &mailer, nil
@@ -70,7 +69,7 @@ func (cfg *Config) DeployAccountMap(sel map[string]bool) error {
 func (cfg *Config) DeployAccountDomain(domain *email.Domain) error {
 	req := cfg.NewRequest()
 
-	domainDir := releases.GetToolsDir("data", "vmail", domain.Name)
+	domainDir := assets.GetToolsDir("data", "vmail", domain.Name)
 	domainMkdir := agent.File{
 		Task:  "mkdir",
 		Path:  domainDir,
@@ -109,7 +108,7 @@ func (cfg *Config) DeployAccountDomain(domain *email.Domain) error {
 func (cfg *Config) EmailUser(user *email.User) error {
 	req := cfg.NewRequest()
 
-	userDir := releases.GetToolsDir("data", "vmail", user.Domain, user.Local)
+	userDir := assets.GetToolsDir("data", "vmail", user.Domain, user.Local)
 	userSubDirs := []string{
 		userDir,
 		filepath.Join(userDir, "Maildir"),
@@ -128,16 +127,15 @@ func (cfg *Config) EmailUser(user *email.User) error {
 		req.AddFile(&userMkdir)
 	}
 
-	tmpl := filepath.Join("account", "add_user.sql")
-	stmts, err := templates.SQL(tmpl, cfg.Verbose, user)
+	sqlStmts, err := assets.SQL("account/add_user.sql", user)
 	if err != nil {
 		return err
 	}
-	entry := agent.MySQL{
-		Stmts:   stmts,
+	sqlCmd := agent.MySQL{
+		Stmts:   sqlStmts,
 		Comment: fmt.Sprintf("add vmail account for %s", user.Email()),
 	}
-	req.MySQLs = append(req.MySQLs, &entry)
+	req.MySQLs = append(req.MySQLs, &sqlCmd)
 
 	if err := req.Send(); err != nil {
 		return err
@@ -149,7 +147,7 @@ func (cfg *Config) EmailUser(user *email.User) error {
 func (cfg *Config) ProxyDirs(domain *email.Domain) error {
 	req := cfg.NewRequest()
 
-	proxyDir := releases.GetToolsDir("data", "mailproxy", domain.Name)
+	proxyDir := assets.GetToolsDir("data", "mailproxy", domain.Name)
 	data := struct {
 		Domain string
 		FQDN   string
@@ -177,14 +175,14 @@ func (cfg *Config) ProxyDirs(domain *email.Domain) error {
 	req.AddFile(&autoConfigMkdir)
 
 	// create autoconfig.xml
-	autoConfigContent, err := templates.Parse("mailproxy/autoconfig.xml", cfg.Verbose, data)
+	autoConfigTmpl, err := assets.Render("mailproxy/autoconfig.xml", data)
 	if err != nil {
 		return err
 	}
 	autoConfigFile := agent.File{
 		Task:    "write",
 		Path:    filepath.Join(autoConfigDir, "config-v1.1.xml"),
-		Content: autoConfigContent,
+		Content: autoConfigTmpl,
 		Mode:    "0644",
 		User:    "root",
 		Group:   "root",
@@ -203,14 +201,14 @@ func (cfg *Config) ProxyDirs(domain *email.Domain) error {
 	req.AddFile(&autoDiscoverMkdir)
 
 	// create autodiscover.xml
-	autoDiscoverContent, err := templates.Parse("mailproxy/autodiscover.xml", cfg.Verbose, data)
+	autoDiscoverTmpl, err := assets.Render("mailproxy/autodiscover.xml", data)
 	if err != nil {
 		return err
 	}
 	autoDiscoverFile := agent.File{
 		Task:    "write",
 		Path:    filepath.Join(autoDiscoverDir, "autodiscover.xml"),
-		Content: autoDiscoverContent,
+		Content: autoDiscoverTmpl,
 		Mode:    "0644",
 		User:    "root",
 		Group:   "root",
@@ -229,14 +227,14 @@ func (cfg *Config) ProxyDirs(domain *email.Domain) error {
 	req.AddFile(&mtaStsMkdir)
 
 	// create mta-sts.txt
-	mtaStsContent, err := templates.Parse("mailproxy/mta-sts.txt", cfg.Verbose, data)
+	mtaStsTmpl, err := assets.Render("mailproxy/mta-sts.txt", data)
 	if err != nil {
 		return err
 	}
 	mtaStsFile := agent.File{
 		Task:    "write",
 		Path:    filepath.Join(mtaStsDir, "mta-sts.txt"),
-		Content: mtaStsContent,
+		Content: mtaStsTmpl,
 		Mode:    "0644",
 		User:    "root",
 		Group:   "root",
@@ -246,7 +244,7 @@ func (cfg *Config) ProxyDirs(domain *email.Domain) error {
 	// Create dir for all log files
 	allLogsMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  releases.GetToolsDir("logs", "mailproxy"),
+		Path:  assets.GetToolsDir("logs", "mailproxy"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -256,7 +254,7 @@ func (cfg *Config) ProxyDirs(domain *email.Domain) error {
 	// Create dir for domain log files
 	logsMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  releases.GetToolsDir("logs", "mailproxy", domain.Name),
+		Path:  assets.GetToolsDir("logs", "mailproxy", domain.Name),
 		Mode:  "0755",
 		User:  "www-data",
 		Group: "www-data",
@@ -297,24 +295,24 @@ func (cfg *Config) ProxyVhost(domain *email.Domain) error {
 	}{
 		Domain:   domain.Name,
 		SysAdmin: cfg.SysAdmin,
-		RootDir:  releases.GetToolsDir("data", "mailproxy", domain.Name),
-		CertDir:  releases.GetToolsDir("data", "certs", certName),
-		LogsDir:  releases.GetToolsDir("logs", "mailproxy", domain.Name),
+		RootDir:  assets.GetToolsDir("data", "mailproxy", domain.Name),
+		CertDir:  assets.GetToolsDir("data", "certs", certName),
+		LogsDir:  assets.GetToolsDir("logs", "mailproxy", domain.Name),
 	}
 
-	tmpl, err := templates.Parse("mailproxy/vhost.conf", cfg.Verbose, config)
+	vHostTmpl, err := assets.Render("mailproxy/vhost.conf", config)
 	if err != nil {
 		return err
 	}
-	name := fmt.Sprintf("14-autoconfig.%s.conf", domain.Name)
-	path := agent.GetApacheEtcDir("sites-available", name)
-	file := agent.File{
+	vHostName := fmt.Sprintf("site-autoconfig.%s.conf", domain.Name)
+	vHostPath := assets.GetApacheEtcDir("sites-available", vHostName)
+	vHostFile := agent.File{
 		Task:    "write",
-		Path:    path,
-		Content: tmpl,
+		Path:    vHostPath,
+		Content: vHostTmpl,
 		Service: "apache2",
 	}
-	req.AddFile(&file)
+	req.AddFile(&vHostFile)
 
 	if err := req.Send(); err != nil {
 		return err

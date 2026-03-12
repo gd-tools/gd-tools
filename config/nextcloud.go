@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 func (cfg *Config) DeployNextcloud(nc *agent.Nextcloud) error {

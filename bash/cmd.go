@@ -49,7 +49,7 @@ func Run(c *cli.Context) error {
 		Name: name,
 	}
 
-	out, err := assets.Parse("system/completion.bash", data)
+	out, err := assets.Render("system/completion.bash", data)
 	if err != nil {
 		return err
 	}

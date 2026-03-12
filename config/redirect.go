@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 const (
@@ -63,7 +62,7 @@ func (redir *Redirect) CertDir() string {
 
 func (redir *Redirect) VhostPath() string {
 	name := fmt.Sprintf("07-%s.conf", redir.FQDN())
-	return agent.GetApacheEtcDir("sites-available", name)
+	return assets.GetApacheEtcDir("sites-available", name)
 }
 
 func (redir *Redirect) CertificateList() (string, []string) {

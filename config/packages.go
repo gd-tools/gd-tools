@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 func (cfg *Config) DeployPackages(upgrade bool) error {
@@ -41,7 +41,8 @@ func (cfg *Config) PackagesRepos() error {
 	req := cfg.NewRequest()
 
 	for _, name := range cfg.Baseline.Repos {
-		keyTmpl := fmt.Sprintf("apt/%s/keys/%s.gpg", cfg.BaselineName, name)
+		keyName := name + ".gpg"
+		keyTmpl := fmt.Sprintf("apt/%s/keys/%s", cfg.BaselineName, keyName)
 		keyData, err := assets.Render(keyTmpl, nil)
 		if err != nil {
 			return err

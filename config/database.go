@@ -1,8 +1,8 @@
 package config
 
 import (
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 func (cfg *Config) DeployDatabase() error {

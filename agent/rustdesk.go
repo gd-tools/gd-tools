@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 const (
@@ -25,7 +25,7 @@ type RustDesk struct {
 	PrivateB64 string `json:"private_b64,omitempty"`
 	PublicKey  string `json:"public_key,omitempty"`
 
-	Download *releases.Download `json:"-"`
+	Download *assets.Download `json:"-"`
 }
 
 func (rd *RustDesk) FQDN() string {
@@ -60,11 +60,11 @@ func (rd *RustDesk) SetPublic(s string) {
 
 // This is for mount checking
 func (rd *RustDesk) ToolsDir() string {
-	return releases.GetToolsDir()
+	return assets.GetToolsDir()
 }
 
 func (rd *RustDesk) DataDir(paths ...string) string {
-	root := releases.GetToolsDir("data", "rustdesk")
+	root := assets.GetToolsDir("data", "rustdesk")
 	if len(paths) == 0 {
 		return root
 	}
@@ -72,7 +72,7 @@ func (rd *RustDesk) DataDir(paths ...string) string {
 }
 
 func (rd *RustDesk) LogsDir(paths ...string) string {
-	root := releases.GetToolsDir("logs", "rustdesk")
+	root := assets.GetToolsDir("logs", "rustdesk")
 	if len(paths) == 0 {
 		return root
 	}

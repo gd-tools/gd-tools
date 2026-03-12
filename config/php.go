@@ -3,8 +3,8 @@ package config
 import (
 	"path/filepath"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 func (cfg *Config) PhpEtcDir(paths ...string) string {

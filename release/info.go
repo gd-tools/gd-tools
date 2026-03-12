@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/urfave/cli/v2"
 )
 
@@ -32,7 +32,7 @@ var InfoCommand = &cli.Command{
 }
 
 func InfoRun(c *cli.Context) error {
-	catalog, err := releases.Load()
+	catalog, err := assets.LoadCatalog()
 	if err != nil {
 		return err
 	}

@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	ReleasesFile = "releases.json"
+	ReleasesName = "releases"
+	ReleasesFile = ReleasesName + ".json"
 )
 
 // Baseline describes the platform runtime environment (for recovery).
@@ -46,8 +47,7 @@ type Catalog struct {
 
 // Load reads the release catalog from assets/templates/system/releases.json.
 func LoadCatalog() (*Catalog, error) {
-	releasesPath := filepath.Join("assets", ReleasesFile)
-	data, err := Render("system/" + ReleasesFile, nil)
+	data, err := Render("system/"+ReleasesFile, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load %s: %w", ReleasesFile, err)
 	}

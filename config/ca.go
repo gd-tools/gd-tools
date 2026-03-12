@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 const (

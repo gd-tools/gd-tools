@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 func (cfg *Config) LocalScript(commands []string) ([]byte, error) {
@@ -92,11 +92,11 @@ func (cfg *Config) PushCerts() {
 		return
 	}
 
-	dataPath := releases.GetToolsDir("data")
+	dataPath := assets.GetToolsDir("data")
 	if ok := cfg.CheckRemote("test -d " + dataPath); !ok {
 		return
 	}
-	certPath := releases.GetToolsDir("data", "certs")
+	certPath := assets.GetToolsDir("data", "certs")
 
 	if _, err := cfg.LocalCommand(
 		"rsync",

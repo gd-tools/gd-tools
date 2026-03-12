@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 const (
@@ -33,7 +33,7 @@ type Nextcloud struct {
 	Secret     string `json:"secret"`
 	AdminEmail string `json:"admin_email"`
 
-	Download *releases.Download `json:"-"`
+	Download *assets.Download `json:"-"`
 }
 
 type NextcloudList struct {
@@ -45,12 +45,12 @@ func (nc *Nextcloud) FQDN() string {
 }
 
 func (nc *Nextcloud) RootDir() string {
-	return releases.GetToolsDir("data", "nextcloud", nc.Name)
+	return assets.GetToolsDir("data", "nextcloud", nc.Name)
 }
 
 func (nc *Nextcloud) SocketPath() string {
 	name := fmt.Sprintf("php%s-nextcloud-%s.sock", nc.PhpVersion, nc.Name)
-	return releases.GetRunDir("php", name)
+	return assets.GetRunDir("php", name)
 }
 
 func (nc *Nextcloud) ConfigPath() string {
@@ -82,7 +82,7 @@ func (nc *Nextcloud) DataDir(paths ...string) string {
 }
 
 func (nc *Nextcloud) LogsDir(paths ...string) string {
-	logsDir := releases.GetToolsDir("logs", "nextcloud", nc.Name)
+	logsDir := assets.GetToolsDir("logs", "nextcloud", nc.Name)
 	if len(paths) == 0 {
 		return logsDir
 	}
@@ -90,21 +90,21 @@ func (nc *Nextcloud) LogsDir(paths ...string) string {
 }
 
 func (nc *Nextcloud) CronPath() string {
-	return releases.GetEtcDir("cron.d", "nextcloud_"+nc.Name)
+	return assets.GetEtcDir("cron.d", "nextcloud_"+nc.Name)
 }
 
 func (nc *Nextcloud) VhostPath() string {
 	name := fmt.Sprintf("site-nc-%s.conf", nc.FQDN())
-	return GetApacheEtcDir("sites-available", name)
+	return assets.GetApacheEtcDir("sites-available", name)
 }
 
 func (nc *Nextcloud) HookPath() string {
 	name := "backup-pre-nextcloud-" + nc.Name
-	return releases.GetToolsDir("data", "hooks", name)
+	return assets.GetToolsDir("data", "hooks", name)
 }
 
 func (nc *Nextcloud) CertDir() string {
-	return releases.GetToolsDir("data", "certs", nc.FQDN())
+	return assets.GetToolsDir("data", "certs", nc.FQDN())
 }
 
 // the following functions are on Dev

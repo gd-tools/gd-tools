@@ -2,8 +2,8 @@ package sync
 
 import (
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/config"
-	"github.com/gd-tools/gd-tools/releases"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -41,7 +41,7 @@ func Run(c *cli.Context) error {
 		}
 		privFile := agent.File{
 			Task:    "write",
-			Path:    releases.GetRootDir(".ssh", "id_rsa"),
+			Path:    assets.GetRootDir(".ssh", "id_rsa"),
 			Content: privContent,
 			Mode:    "0600",
 			User:    "root",
@@ -50,7 +50,7 @@ func Run(c *cli.Context) error {
 		req.AddFile(&privFile)
 		pubFile := agent.File{
 			Task:    "write",
-			Path:    releases.GetRootDir(".ssh", "id_rsa.pub"),
+			Path:    assets.GetRootDir(".ssh", "id_rsa.pub"),
 			Content: pubContent,
 			Mode:    "0600",
 			User:    "root",

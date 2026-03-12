@@ -1,6 +1,8 @@
 package assets
 
-import "path/filepath"
+import (
+	"path/filepath"
+)
 
 type Download struct {
 	DownloadURL string `json:"download_url"`
@@ -70,7 +72,7 @@ func GetDownloadsDir(paths ...string) string {
 }
 
 func GetApacheToolsDir(paths ...string) string {
-	toolsDir := releases.GetToolsDir("data", "apache")
+	toolsDir := GetToolsDir("data", "apache")
 	if len(paths) == 0 {
 		return toolsDir
 	}
@@ -78,7 +80,7 @@ func GetApacheToolsDir(paths ...string) string {
 }
 
 func GetApacheEtcDir(paths ...string) string {
-	etcDir := releases.GetEtcDir("apache2")
+	etcDir := GetEtcDir("apache2")
 	if len(paths) == 0 {
 		return etcDir
 	}

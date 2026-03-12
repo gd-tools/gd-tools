@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/utils"
 )
 
@@ -27,7 +27,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	dataMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  releases.GetToolsDir("data"),
+		Path:  assets.GetToolsDir("data"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -36,7 +36,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	certsMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  releases.GetToolsDir("data", "certs"),
+		Path:  assets.GetToolsDir("data", "certs"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -45,7 +45,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	hooksMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  releases.GetToolsDir("data", "hooks"),
+		Path:  assets.GetToolsDir("data", "hooks"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -54,7 +54,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	vmailMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  releases.GetToolsDir("data", "vmail"),
+		Path:  assets.GetToolsDir("data", "vmail"),
 		Mode:  "0755",
 		User:  "vmail",
 		Group: "vmail",
@@ -63,7 +63,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	logsMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  releases.GetToolsDir("logs"),
+		Path:  assets.GetToolsDir("logs"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
@@ -72,7 +72,7 @@ func (cfg *Config) DeployFilesystem() error {
 
 	sshMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  releases.GetRootDir(".ssh"),
+		Path:  assets.GetRootDir(".ssh"),
 		Mode:  "0700",
 		User:  "root",
 		Group: "root",

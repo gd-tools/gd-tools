@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 func LoadRustDesk() (*agent.RustDesk, error) {
@@ -129,7 +127,7 @@ func (cfg *Config) RustDeskExtract(rd *agent.RustDesk) error {
 
 	extract := agent.File{
 		Task:   "extract",
-		Path:   releases.GetDownloadsDir(rd.Download.Filename),
+		Path:   assets.GetDownloadsDir(rd.Download.Filename),
 		Target: rd.DataDir(),
 		Mode:   "0750",
 		User:   "rustdesk",
@@ -147,39 +145,31 @@ func (cfg *Config) RustDeskExtract(rd *agent.RustDesk) error {
 func (cfg *Config) RustDeskService(rd *agent.RustDesk) error {
 	req := cfg.NewRequest()
 
-	// hbbs unit
-	{
-		path := filepath.Join("rustdesk", "hbbs.service")
-		content, err := templates.Parse(path, cfg.Verbose, rd)
-		if err != nil {
-			return err
-		}
-		file := agent.File{
-			Task:    "write",
-			Path:    releases.GetEtcDir("systemd", "system", "rustdesk-hbbs.service"),
-			Content: content,
-			Mode:    "0644",
-			Service: "rustdesk-hbbs",
-		}
-		req.AddFile(&file)
+	hbbsTmpl, err := assets.Render("rustdesk/hbbs.service", rd)
+	if err != nil {
+		return err
 	}
+	hbbsFile := agent.File{
+		Task:    "write",
+		Path:    assets.GetEtcDir("systemd", "system", "rustdesk-hbbs.service"),
+		Content: hbbsTmpl,
+		Mode:    "0644",
+		Service: "rustdesk-hbbs",
+	}
+	req.AddFile(&hbbsFile)
 
-	// hbbr unit
-	{
-		path := filepath.Join("rustdesk", "hbbr.service")
-		content, err := templates.Parse(path, cfg.Verbose, rd)
-		if err != nil {
-			return err
-		}
-		file := agent.File{
-			Task:    "write",
-			Path:    releases.GetEtcDir("systemd", "system", "rustdesk-hbbr.service"),
-			Content: content,
-			Mode:    "0644",
-			Service: "rustdesk-hbbr",
-		}
-		req.AddFile(&file)
+	hbbrTmpl, err := assets.Render("rustdesk/hbbr.service", rd)
+	if err != nil {
+		return err
 	}
+	hbbrFile := agent.File{
+		Task:    "write",
+		Path:    assets.GetEtcDir("systemd", "system", "rustdesk-hbbr.service"),
+		Content: hbbrTmpl,
+		Mode:    "0644",
+		Service: "rustdesk-hbbr",
+	}
+	req.AddFile(&hbbrFile)
 
 	if err := req.Send(); err != nil {
 		return err

@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/utils"
 )
 
@@ -100,7 +99,7 @@ func (cfg *Config) DeployBackup() error {
 	}
 
 	for _, name := range bbFiles {
-		bbTmpl, err := assets.Render("backup/" + name, bkup)
+		bbTmpl, err := assets.Render("backup/"+name, bkup)
 		if err != nil {
 			return err
 		}

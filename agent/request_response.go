@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 const (
@@ -40,7 +40,7 @@ type Request struct {
 	SQL       []string `json:"sql,omitempty"`
 	MySQLs    []*MySQL `json:"mysqls,omitempty"`
 
-	Downloads []*releases.Download `json:"downloads,omitempty"`
+	Downloads []*assets.Download `json:"downloads,omitempty"`
 
 	Checks   []string `json:"checks,omitempty"`
 	Services []string `json:"services,omitempty"` // services to (re)start

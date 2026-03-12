@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/email"
 	"github.com/gd-tools/gd-tools/utils"
 )
@@ -119,7 +118,7 @@ func (cfg *Config) PostfixTables() error {
 	}
 
 	for _, name := range cfNames {
-		cfTmpl, err := assets.Render("postfix/" + name, cfg.Postfix)
+		cfTmpl, err := assets.Render("postfix/"+name, cfg.Postfix)
 		if err != nil {
 			return err
 		}
@@ -134,7 +133,7 @@ func (cfg *Config) PostfixTables() error {
 		req.AddFile(&cfFile)
 	}
 
-	sqlTmpl, err := assets.SQL("postfix", "create_tables.sql", cfg.Postfix)
+	sqlTmpl, err := assets.SQL("postfix/create_tables.sql", cfg.Postfix)
 	if err != nil {
 		return err
 	}

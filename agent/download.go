@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 // DownloadsTest checks if there is work to be done
@@ -22,7 +22,7 @@ func DownloadsHandler(req *Request, resp *Response) error {
 	if req == nil || len(req.Downloads) == 0 || resp == nil {
 		return nil
 	}
-	downloadsRoot := releases.GetDownloadsDir("")
+	downloadsRoot := assets.GetDownloadsDir("")
 
 	if err := os.MkdirAll(downloadsRoot, 0755); err != nil {
 		return err
@@ -63,12 +63,12 @@ func DownloadsHandler(req *Request, resp *Response) error {
 				"-o", "root",
 				"-g", "root",
 				path,
-				releases.GetBinDir(dwn.Binary),
+				assets.GetBinDir(dwn.Binary),
 			)
 			if err != nil {
 				return err
 			}
-			resp.Sayf("copied %s to %s", path, releases.GetBinDir(dwn.Binary))
+			resp.Sayf("copied %s to %s", path, assets.GetBinDir(dwn.Binary))
 		}
 	}
 

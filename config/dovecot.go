@@ -4,14 +4,13 @@ import (
 	"path/filepath"
 
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/email"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 	"github.com/gd-tools/gd-tools/utils"
 )
 
 func (cfg *Config) SieveBefore(paths ...string) string {
-	sieve := releases.GetToolsDir("data", "sieve_before")
+	sieve := assets.GetToolsDir("data", "sieve_before")
 	if len(paths) == 0 {
 		return sieve
 	}
@@ -19,7 +18,7 @@ func (cfg *Config) SieveBefore(paths ...string) string {
 }
 
 func (cfg *Config) SieveAfter(paths ...string) string {
-	sieve := releases.GetToolsDir("data", "sieve_after")
+	sieve := assets.GetToolsDir("data", "sieve_after")
 	if len(paths) == 0 {
 		return sieve
 	}
@@ -45,7 +44,7 @@ func (cfg *Config) DeployDovecot() error {
 	}
 	cfg.Mailer = mailer
 
-	cfg.CertDir = releases.GetToolsDir("data", "certs", cfg.FQDN())
+	cfg.CertDir = assets.GetToolsDir("data", "certs", cfg.FQDN())
 
 	cfg.Password, err = utils.FetchPassword(20, "vmail", "db_password")
 	if err != nil {
@@ -76,16 +75,15 @@ func (cfg *Config) DeployDovecot() error {
 func (cfg *Config) DovecotTables() error {
 	req := cfg.NewRequest()
 
-	tmpl := filepath.Join("dovecot", "create_users.sql")
-	stmts, err := templates.SQL(tmpl, cfg.Verbose, cfg)
+	sqlStmts, err := assets.SQL("dovecot/create_users.sql", cfg)
 	if err != nil {
 		return err
 	}
-	entry := agent.MySQL{
-		Stmts:   stmts,
+	sqlCmd := agent.MySQL{
+		Stmts:   sqlStmts,
 		Comment: "create dovecot (vmail) tables",
 	}
-	req.MySQLs = append(req.MySQLs, &entry)
+	req.MySQLs = append(req.MySQLs, &sqlCmd)
 
 	if err := req.Send(); err != nil {
 		return err
@@ -117,39 +115,38 @@ func (cfg *Config) DovecotFiles() error {
 
 	if cfg.Spambarrier != "" {
 		spamName := "10-spambarrier.sieve"
-		spamTmpl := filepath.Join("dovecot/sieve_before", spamName)
-		spamData, err := templates.Parse(spamTmpl, cfg.Verbose, cfg)
+		spamTmpl, err := assets.Render("dovecot/sieve_before/"+spamName, cfg)
 		if err != nil {
 			return err
 		}
-		req.AddFile(&agent.File{
+		spamFile := agent.File{
 			Task:    "write",
 			Path:    cfg.SieveBefore(spamName),
-			Content: spamData,
+			Content: spamTmpl,
 			Mode:    "0644",
 			User:    "vmail",
 			Group:   "vmail",
 			Service: "dovecot",
-		})
+		}
+		req.AddFile(&spamFile)
 	}
 
 	forwardName := "20-forward.sieve"
-	forwardTmpl := filepath.Join("dovecot/sieve_after", forwardName)
-	forwardData, err := templates.Parse(forwardTmpl, cfg.Verbose, cfg)
+	forwardTmpl, err := assets.Render("dovecot/sieve_after/"+forwardName, cfg)
 	if err != nil {
 		return err
 	}
 	req.AddFile(&agent.File{
 		Task:    "write",
 		Path:    cfg.SieveAfter(forwardName),
-		Content: forwardData,
+		Content: forwardTmpl,
 		Mode:    "0644",
 		User:    "vmail",
 		Group:   "vmail",
 		Service: "dovecot",
 	})
 
-	files := []string{
+	confFiles := []string{
 		"conf.d/10-auth.conf",
 		"conf.d/10-mail.conf",
 		"conf.d/10-master.conf",
@@ -158,17 +155,16 @@ func (cfg *Config) DovecotFiles() error {
 		"conf.d/20-lmtp.conf",
 	}
 
-	for _, name := range files {
-		tmpl := filepath.Join("dovecot", name)
-		content, err := templates.Parse(tmpl, cfg.Verbose, cfg)
+	for _, confName := range confFiles {
+		doveTmpl, err := assets.Render("dovecot/"+confName, cfg)
 		if err != nil {
 			return err
 		}
 
 		req.AddFile(&agent.File{
 			Task:    "write",
-			Path:    releases.GetEtcDir("dovecot", name),
-			Content: content,
+			Path:    assets.GetEtcDir("dovecot", confName),
+			Content: doveTmpl,
 			Backup:  true,
 			Mode:    "0644",
 			Service: "dovecot",

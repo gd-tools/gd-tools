@@ -3,8 +3,8 @@ package config
 import (
 	"fmt"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/email"
 	"github.com/gd-tools/gd-tools/utils"
 )
@@ -137,7 +137,7 @@ func (cfg *Config) ApacheDirs() error {
 func (cfg *Config) ApacheIndex() error {
 	req := cfg.NewRequest()
 
-	indexTmpl, err := templates.Parse("apache/index.html", cfg.Verbose, cfg)
+	indexTmpl, err := assets.Render("apache/index.html", cfg)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (cfg *Config) ApacheIndex() error {
 	}
 	req.AddFile(&indexFile)
 
-	testTmpl, err := templates.Parse("apache/test.php", cfg.Verbose, cfg)
+	testTmpl, err := assets.Render("apache/test.php", cfg)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (cfg *Config) ApacheIndex() error {
 func (cfg *Config) ApacheOptions() error {
 	req := cfg.NewRequest()
 
-	optionsTmpl, err := templates.Parse("apache/options.conf", cfg.Verbose, cfg)
+	optionsTmpl, err := assets.Render("apache/options.conf", cfg)
 	if err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func (cfg *Config) ApacheDHparam(service string) error {
 func (cfg *Config) ApacheVhost() error {
 	req := cfg.NewRequest()
 
-	vhostTmpl, err := templates.Parse("apache/vhost.conf", cfg.Verbose, cfg)
+	vhostTmpl, err := assets.Render("apache/vhost.conf", cfg)
 	if err != nil {
 		return err
 	}

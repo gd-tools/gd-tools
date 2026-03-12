@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 const (
@@ -100,7 +100,7 @@ func (wp *WordPress) LogsDir(paths ...string) string {
 
 func (wp *WordPress) VhostPath() string {
 	name := fmt.Sprintf("wp-%s.conf", wp.FQDN())
-	return agent.GetApacheEtcDir("sites-available", name)
+	return assets.GetApacheEtcDir("sites-available", name)
 }
 
 func (wp *WordPress) HookPath() string {
@@ -311,7 +311,7 @@ func (cfg *Config) WordPressDownload(wp *WordPress) error {
 	}
 	req.Downloads = append(req.Downloads, &wpRel.Download)
 
-	_, cliRel, err := cat.Get("wp-cli", wp.WpCliVersion)
+	_, cliRel, err := cfg.Catalog.Get("wp-cli", wp.WpCliVersion)
 	if err != nil {
 		return err
 	}
@@ -380,7 +380,7 @@ func (cfg *Config) WordPressLogsDir(wp *WordPress) error {
 func (cfg *Config) WordPress_SQL(wp *WordPress) error {
 	req := cfg.NewRequest()
 
-	sqlStmts, err := templates.SQL("wordpress/create.sql", cfg.Verbose, wp)
+	sqlStmts, err := assets.SQL("wordpress/create.sql", wp)
 	if err != nil {
 		return err
 	}

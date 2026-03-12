@@ -10,7 +10,7 @@ import (
 	"sort"
 
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -24,8 +24,8 @@ const (
 type Config struct {
 	BaselineName string `json:"baseline"` // runtime generation: ubuntu-php-dovecot
 
-	Catalog  *releases.Catalog  `json:"-"`
-	Baseline *releases.Baseline `json:"-"`
+	Catalog  *assets.Catalog  `json:"-"`
+	Baseline *assets.Baseline `json:"-"`
 
 	Verbose  bool           `json:"-"`
 	Quiet    bool           `json:"-"`
@@ -122,7 +122,7 @@ func (cfg *Config) FQDN() string {
 }
 
 func (cfg *Config) DHParamsPath() string {
-	return releases.GetEtcDir("apache2", utils.DHParamsName)
+	return assets.GetEtcDir("apache2", utils.DHParamsName)
 }
 
 func (cfg *Config) RootUser() string {
@@ -198,7 +198,7 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 		agent.SetAgentPort(cfg.Port)
 	}
 
-	cfg.Catalog, err = releases.Load()
+	cfg.Catalog, err = assets.LoadCatalog()
 	if err != nil {
 		return nil, err
 	}

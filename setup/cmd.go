@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/config"
-	"github.com/gd-tools/gd-tools/releases"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -110,7 +110,7 @@ var Command = &cli.Command{
 }
 
 func Run(c *cli.Context) error {
-	catalog, err := releases.Load()
+	catalog, err := assets.LoadCatalog()
 	if err != nil {
 		return err
 	}
@@ -216,14 +216,14 @@ func Run(c *cli.Context) error {
 		mount := agent.Mount{
 			Provider: "Hetzner",
 			ID:       volume,
-			Dir:      releases.GetToolsDir(""),
+			Dir:      assets.GetToolsDir(""),
 		}
 		cfg.Mounts = append(cfg.Mounts, &mount)
 	} else if device := c.String("raid-device"); device != "" {
 		mount := agent.Mount{
 			Provider: "RAID",
 			ID:       device,
-			Dir:      releases.GetToolsDir(""),
+			Dir:      assets.GetToolsDir(""),
 		}
 		cfg.Mounts = append(cfg.Mounts, &mount)
 	}

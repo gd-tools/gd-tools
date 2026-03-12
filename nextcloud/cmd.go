@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/config"
 	"github.com/gd-tools/gd-tools/email"
-	"github.com/gd-tools/gd-tools/releases"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -100,7 +100,7 @@ func Run(c *cli.Context) error {
 		return nil
 	}
 
-	catalog, err := releases.Load()
+	catalog, err := assets.LoadCatalog()
 	if err != nil {
 		return err
 	}

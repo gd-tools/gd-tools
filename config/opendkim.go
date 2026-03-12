@@ -6,9 +6,8 @@ import (
 	"strings"
 
 	"github.com/gd-tools/gd-tools/agent"
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/email"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 )
 
 const (
@@ -24,7 +23,7 @@ func (cfg *Config) DeployOpenDKIM() error {
 
 	req := cfg.NewRequest()
 
-	dkimDir := releases.GetToolsDir("data", "opendkim")
+	dkimDir := assets.GetToolsDir("data", "opendkim")
 	dkimMkdir := agent.File{
 		Task:  "mkdir",
 		Path:  dkimDir,
@@ -94,15 +93,14 @@ func (cfg *Config) DeployOpenDKIM() error {
 		signingTable = append(signingTable, signingTableLine)
 	}
 
-	confTmpl := filepath.Join("opendkim", "opendkim.conf")
-	confData, err := templates.Parse(confTmpl, cfg.Verbose, cfg)
+	confTmpl, err := assets.Render("opendkim/opendkim.conf", cfg)
 	if err != nil {
 		return err
 	}
 	confFile := agent.File{
 		Task:    "write",
-		Path:    releases.GetEtcDir("opendkim.conf"),
-		Content: confData,
+		Path:    assets.GetEtcDir("opendkim.conf"),
+		Content: confTmpl,
 		Backup:  true,
 		Mode:    "0644",
 		Service: "opendkim",
@@ -111,22 +109,21 @@ func (cfg *Config) DeployOpenDKIM() error {
 
 	etcMkdir := agent.File{
 		Task:  "mkdir",
-		Path:  releases.GetEtcDir("opendkim"),
+		Path:  assets.GetEtcDir("opendkim"),
 		Mode:  "0755",
 		User:  "root",
 		Group: "root",
 	}
 	req.AddFile(&etcMkdir)
 
-	trustedTmpl := filepath.Join("opendkim", "trusted.hosts")
-	trustedData, err := templates.Parse(trustedTmpl, cfg.Verbose, cfg)
+	trustedTmpl, err := assets.Render("opendkim/trusted.hosts", cfg)
 	if err != nil {
 		return err
 	}
 	trustedFile := agent.File{
 		Task:    "write",
-		Path:    releases.GetEtcDir("opendkim", "TrustedHosts"),
-		Content: trustedData,
+		Path:    assets.GetEtcDir("opendkim", "TrustedHosts"),
+		Content: trustedTmpl,
 		Mode:    "0644",
 		Service: "opendkim",
 	}
@@ -135,7 +132,7 @@ func (cfg *Config) DeployOpenDKIM() error {
 	keysData := strings.Join(keyTable, "\n") + "\n"
 	keysFile := agent.File{
 		Task:    "write",
-		Path:    releases.GetEtcDir("opendkim", "KeyTable"),
+		Path:    assets.GetEtcDir("opendkim", "KeyTable"),
 		Content: []byte(keysData),
 		Mode:    "0644",
 		Service: "opendkim",
@@ -145,7 +142,7 @@ func (cfg *Config) DeployOpenDKIM() error {
 	signingData := strings.Join(signingTable, "\n") + "\n"
 	signingFile := agent.File{
 		Task:    "write",
-		Path:    releases.GetEtcDir("opendkim", "SigningTable"),
+		Path:    assets.GetEtcDir("opendkim", "SigningTable"),
 		Content: []byte(signingData),
 		Mode:    "0644",
 		Service: "opendkim",

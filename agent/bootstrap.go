@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gd-tools/gd-tools/releases"
+	"github.com/gd-tools/gd-tools/assets"
 )
 
 const (
@@ -13,7 +13,7 @@ const (
 )
 
 func BootstrapTest(req *Request) bool {
-	path := releases.GetRootDir(FirstRunMarker)
+	path := assets.GetRootDir(FirstRunMarker)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return true
 	}
@@ -30,7 +30,7 @@ func BootstrapHandler(req *Request, resp *Response) error {
 	}
 
 	firstRun := false
-	path := releases.GetRootDir(FirstRunMarker)
+	path := assets.GetRootDir(FirstRunMarker)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		firstRun = true
 		cmds := []string{

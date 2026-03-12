@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/config"
-	"github.com/gd-tools/gd-tools/releases"
-	"github.com/gd-tools/gd-tools/templates"
 	"github.com/urfave/cli/v2"
 )
 
@@ -47,7 +46,7 @@ func Run(c *cli.Context) error {
 		return err
 	}
 
-	etcTools := releases.GetEtcDir("gd-tools")
+	etcTools := assets.GetEtcDir("gd-tools")
 	mkdirCmd := "install -o root -g root -m 0700 -d " + etcTools
 	if err := cfg.RemoteCmd(mkdirCmd); err != nil {
 		return fmt.Errorf("failed to install %s: %w", etcTools, err)
@@ -70,7 +69,7 @@ func Run(c *cli.Context) error {
 		"gd-tools",
 	}
 	for _, prog := range gdProgs {
-		progPath := releases.GetBinDir(prog)
+		progPath := assets.GetBinDir(prog)
 		if _, err := cfg.LocalCommand(
 			"rsync",
 			cfg.RsyncFlags(),
@@ -87,18 +86,20 @@ func Run(c *cli.Context) error {
 	data := struct {
 		ProgPath string
 	}{
-		ProgPath: releases.GetBinDir("gd-tools"),
+		ProgPath: assets.GetBinDir("gd-tools"),
 	}
-	content, err := templates.Parse(service, cfg.Verbose, data)
+
+	// create temporarily for the transfer
+	svcTmpl, err := assets.Render("system/"+service, data)
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(service, content, 0644); err != nil {
+	if err := os.WriteFile(service, svcTmpl, 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", service, err)
 	}
 	defer os.Remove(service)
 
-	systemd := releases.GetEtcDir("systemd", "system", service)
+	systemd := assets.GetEtcDir("systemd", "system", service)
 	if _, err := cfg.LocalCommand(
 		"rsync",
 		cfg.RsyncFlags(),
