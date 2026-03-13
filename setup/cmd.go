@@ -54,6 +54,10 @@ var (
 		Name:  "company",
 		Usage: "Company name, used e.g. for Webmail",
 	}
+	FlagDomain = &cli.StringFlag{
+		Name:  "domain",
+		Usage: "Internet Domain name, used for constructing URLs",
+	}
 	FlagSysAdmin = &cli.StringFlag{
 		Name:  "sysadmin",
 		Usage: "System Administrator email address",
@@ -97,6 +101,7 @@ var Command = &cli.Command{
 		FlagSwapSize,
 		FlagDMARC,
 		FlagCompany,
+		FlagDomain,
 		FlagSysAdmin,
 		FlagHelpURL,
 		FlagUbuntuPro,
@@ -132,7 +137,7 @@ func Run(c *cli.Context) error {
 		return err
 	}
 
-	basics, err := utils.ReadBasics()
+	basics, err := utils.EnsureBasics()
 	if err != nil {
 		return err
 	}
@@ -157,6 +162,7 @@ func Run(c *cli.Context) error {
 		DMARC:           c.String("dmarc"),
 		SysAdmin:        c.String("sysadmin"),
 		Company:         c.String("company"),
+		Domain:          c.String("domain"),
 		HelpURL:         c.String("help-url"),
 		Spambarrier:     c.String("spambarrier"),
 		UbuntuPro:       c.String("ubuntu-pro"),
@@ -175,6 +181,9 @@ func Run(c *cli.Context) error {
 	}
 	if cfg.Company == "" {
 		cfg.Company = basics.Company
+	}
+	if cfg.Domain == "" {
+		cfg.Domain = basics.Domain
 	}
 	if cfg.SysAdmin == "" {
 		cfg.SysAdmin = basics.SysAdmin
@@ -203,11 +212,7 @@ func Run(c *cli.Context) error {
 		}
 	}
 
-	// read default postfix-routing and known_hosts
-	routing, err := os.ReadFile(config.RoutingName)
-	if err != nil {
-		return fmt.Errorf("failed to read %s: %w", config.RoutingName, err)
-	}
+	// read accumulated known_hosts
 	khContent, khErr := os.ReadFile("known_hosts")
 
 	// check for filesystems to be mounted
@@ -255,10 +260,6 @@ func Run(c *cli.Context) error {
 
 	if err := cfg.SetupCA(); err != nil {
 		return err
-	}
-
-	if err := os.WriteFile(config.RoutingName, routing, 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", config.RoutingName, err)
 	}
 
 	if khErr == nil {

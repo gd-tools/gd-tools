@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gd-tools/gd-tools/assets"
+	"github.com/gd-tools/gd-tools/utils"
 )
 
 const (
@@ -129,10 +130,10 @@ func LoadNextcloudList(update *Nextcloud) (*NextcloudList, error) {
 			return nil, fmt.Errorf("found Nextcloud without Name")
 		}
 		if entry.Language == "" {
-			entry.Language = GetLanguage()
+			entry.Language = utils.GetLanguage()
 		}
 		if entry.Region == "" {
-			entry.Region = GetRegion()
+			entry.Region = utils.GetRegion()
 		}
 		if entry.HostName == "" {
 			return nil, fmt.Errorf("missing HostName for Nextcloud %s", entry.Name)

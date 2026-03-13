@@ -1,4 +1,4 @@
-package agent
+package utils
 
 import (
 	"context"
@@ -16,37 +16,12 @@ const (
 	DefaultLocale   = DefaultLanguage + "_" + DefaultRegion
 )
 
-var (
-	Language string
-	Region   string
-)
-
-func SetLanguage(name string) {
-	if name == "" {
-		name = DefaultLanguage
-	}
-	Language = name
-}
-
 func GetLanguage() string {
-	if Language == "" {
-		SetLanguage("")
-	}
-	return Language
-}
-
-func SetRegion(name string) {
-	if name == "" {
-		name = DefaultRegion
-	}
-	Region = name
+	return DefaultLanguage
 }
 
 func GetRegion() string {
-	if Region == "" {
-		SetRegion("")
-	}
-	return Region
+	return DefaultRegion
 }
 
 func ParseLang(raw string) string {
@@ -54,14 +29,22 @@ func ParseLang(raw string) string {
 		return ""
 	}
 
-	// Handle "de:en"
 	if parts := strings.Split(raw, ":"); len(parts) > 0 {
 		raw = parts[0]
 	}
 
-	// Cut at first "-", "_", ".", or "@"
+	if idx := strings.Index(raw, ";"); idx != -1 {
+		raw = raw[:idx]
+	}
+
 	if idx := strings.IndexAny(raw, "-_.@"); idx != -1 {
 		raw = raw[:idx]
+	}
+
+	raw = strings.TrimSpace(raw)
+
+	if len(raw) < 2 {
+		return ""
 	}
 
 	return raw
@@ -73,13 +56,17 @@ func RequestLanguage(r *http.Request) string {
 		return DefaultLanguage
 	}
 
-	// Example: "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7"
 	parts := strings.Split(header, ",")
-	if len(parts) > 0 {
-		return ParseLang(parts[0])
+	if len(parts) == 0 {
+		return DefaultLanguage
 	}
 
-	return DefaultLanguage
+	lang := ParseLang(parts[0])
+	if lang == "" {
+		return DefaultLanguage
+	}
+
+	return lang
 }
 
 func LanguageMiddleware(next http.Handler) http.Handler {

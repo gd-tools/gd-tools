@@ -116,9 +116,9 @@ func (list *SecretList) Save() error {
 }
 
 func (list *SecretList) Get(domain, user string) *Secret {
-	for _, entry := range list.Secrets {
-		if entry.Domain == domain && entry.User == user {
-			return &entry
+	for i := range list.Secrets {
+		if list.Secrets[i].Domain == domain && list.Secrets[i].User == user {
+			return &list.Secrets[i]
 		}
 	}
 

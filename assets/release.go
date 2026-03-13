@@ -12,6 +12,17 @@ const (
 	ReleasesFile = ReleasesName + ".json"
 )
 
+// Download describes a specific loadable asset, e.g. a zip or tar archive.
+type Download struct {
+	DownloadURL string `json:"download_url"`
+	Filename    string `json:"filename"`
+	Directory   string `json:"directory"`
+	Binary      string `json:"binary"`
+	MD5         string `json:"md5"`
+	SHA256      string `json:"sha256"`
+	SHA512      string `json:"sha512"`
+}
+
 // Baseline describes the platform runtime environment (for recovery).
 type Baseline struct {
 	Name     string   `json:"name"` // e.g. "noble-8.3-2.4"
@@ -45,7 +56,7 @@ type Catalog struct {
 	Products  []Product  `json:"products"`
 }
 
-// Load reads the release catalog from assets/templates/system/releases.json.
+// LoadCatalog reads the release catalog from assets/templates/system/releases.json.
 func LoadCatalog() (*Catalog, error) {
 	data, err := Render("system/"+ReleasesFile, nil)
 	if err != nil {
@@ -53,12 +64,9 @@ func LoadCatalog() (*Catalog, error) {
 	}
 
 	var catalog Catalog
-	if err := json.Unmarshal(data, &catalog); err != nil {
+	err = json.Unmarshal(data, &catalog)
+	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal %s: %w", ReleasesFile, err)
-	}
-
-	if err := catalog.Validate(); err != nil {
-		return nil, fmt.Errorf("failed to validate %s: %w", ReleasesFile, err)
 	}
 
 	return &catalog, nil
@@ -103,22 +111,29 @@ func (pr *Product) Get(num string) (*Release, error) {
 	}
 
 	for i := range pr.Versions {
-		rel := &pr.Versions[i]
-		if rel.Number == num {
-			if rel.Download.Directory == "" {
-				rel.Download.Directory = pr.Directory
-			}
-			if rel.Download.Binary == "" {
-				rel.Download.Binary = pr.Binary
-			}
-			return rel, nil
+		rel := pr.Versions[i]
+		if rel.Number != num {
+			continue
 		}
+
+		// copy release so we don't mutate the catalog
+		r := rel
+
+		if r.Download.Directory == "" {
+			r.Download.Directory = pr.Directory
+		}
+
+		if r.Download.Binary == "" {
+			r.Download.Binary = pr.Binary
+		}
+
+		return &r, nil
 	}
 
 	return nil, fmt.Errorf("release %q not found for product %q", num, pr.Name)
 }
 
-// Return info for the given product
+// Info returns formatted information for the given product.
 func (pr *Product) Info() []string {
 	var lb utils.LineBuffer
 
@@ -128,13 +143,14 @@ func (pr *Product) Info() []string {
 	}
 
 	lb.Add("Known releases:")
+
 	for _, rel := range pr.Versions {
 		line := rel.Number
 		if rel.Number == pr.Default {
 			line += " (default)"
 		}
-		lb.Addf("  - %s", line)
 
+		lb.Addf("  - %s", line)
 		lb.Addf("    Version:    %s", rel.Number)
 
 		if rel.Series != "" {

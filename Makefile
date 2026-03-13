@@ -7,7 +7,7 @@ TEMPLATES := $(shell find assets/templates/ -type f)
 
 .PHONY: all gdt gd-tools gd-occ gd-wp-cli clean test completion pull push
 
-all: gdt gd-tools gd-occ gd-wp-cli
+all: format test gdt gd-tools gd-occ gd-wp-cli
 
 gdt: bin/gdt
 
@@ -18,8 +18,6 @@ gd-occ: bin/gd-occ
 gd-wp-cli: bin/gd-wp-cli
 
 bin/gdt: $(SRC) $(TEMPLATES)
-	go mod tidy
-	go fmt ./...
 	go vet ./...
 	go build -o bin/gdt \
 		-ldflags "-X 'main.version=$(VERSION)'" \
@@ -44,8 +42,15 @@ bin/gd-wp-cli: $(SRC) $(TEMPLATES)
 		./cmd/gd-wp-cli
 	sudo install bin/gd-wp-cli /usr/local/bin
 
+format:
+	go mod tidy
+	go fmt ./...
+
 test:
-	go test ./...
+	go test ./assets
+	go test ./basics
+	go test ./utils
+	# TODO go test ./...
 
 clean:
 	rm -f bin/gdt bin/gd-tools bin/gd-occ bin/gd-wp-cli

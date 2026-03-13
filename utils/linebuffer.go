@@ -5,14 +5,7 @@ import (
 	"strings"
 )
 
-const (
-	StatusOK      = "✅ "
-	StatusError   = "❌ "
-	StatusPending = "⏳ "
-	StatusUnknown = "❓ "
-)
-
-// Helper function to collect lines
+// Simple helper function to collect lines
 type LineBuffer struct {
 	lines []string
 }
@@ -23,14 +16,6 @@ func (lb *LineBuffer) Add(line string) {
 
 func (lb *LineBuffer) Addf(format string, args ...any) {
 	lb.lines = append(lb.lines, fmt.Sprintf(format, args...))
-}
-
-func (lb *LineBuffer) OK(line string) {
-	lb.lines = append(lb.lines, line)
-}
-
-func (lb *LineBuffer) OKf(format string, args ...any) {
-	lb.lines = append(lb.lines, fmt.Sprintf(StatusOK+format, args...))
 }
 
 func (lb *LineBuffer) Lines() []string {

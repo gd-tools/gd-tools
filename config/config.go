@@ -48,6 +48,7 @@ type Config struct {
 	CertDir  string         `json:"-"`
 
 	Company  string `json:"company"`   // company name, used e.g. for Webmail
+	Domain   string `json:"domain"`    // company domain, used for building URLs
 	SysAdmin string `json:"sys_admin"` // try to read from ~/.gitconfig
 	TimeZone string `json:"time_zone"` // e.g. Europe/Berlin
 	Language string `json:"language"`  // e.g. de
@@ -122,7 +123,7 @@ func (cfg *Config) FQDN() string {
 }
 
 func (cfg *Config) DHParamsPath() string {
-	return assets.GetEtcDir("apache2", utils.DHParamsName)
+	return assets.GetEtcDir("apache2", utils.DHParamsFile)
 }
 
 func (cfg *Config) RootUser() string {
@@ -224,6 +225,9 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 	}
 	if cfg.Company == "" {
 		cfg.Company = basics.Company
+	}
+	if cfg.Domain == "" {
+		cfg.Domain = basics.Domain
 	}
 	if cfg.SysAdmin == "" {
 		cfg.SysAdmin = basics.SysAdmin

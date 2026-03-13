@@ -1,12 +1,9 @@
 package basics
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
+	"io"
 
-	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/config"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
@@ -25,6 +22,10 @@ var Command = &cli.Command{
 		&cli.StringFlag{
 			Name:  "company",
 			Usage: "Name of your organisation",
+		},
+		&cli.StringFlag{
+			Name:  "domain",
+			Usage: "internet domain of your organisation",
 		},
 		&cli.StringFlag{
 			Name:  "sysadmin",
@@ -64,76 +65,49 @@ func Run(c *cli.Context) error {
 		return err
 	}
 
-	if _, err := os.Stat(config.RoutingName); err != nil || c.Bool("routing") {
-		content, err := assets.Render("assets/"+config.RoutingName, nil)
-		if err != nil {
-			return fmt.Errorf("failed to load %s: %w", config.RoutingName, err)
-		}
-		if err := os.WriteFile(config.RoutingName, content, 0644); err != nil {
-			return fmt.Errorf("failed to write %s: %w", config.RoutingName, err)
-		}
-		fmt.Println("created/updated routing from repository")
-	}
-
-	var basics utils.Basics
-	content, err := os.ReadFile(utils.BasicsName)
+	bsc, err := utils.EnsureBasics()
 	if err != nil {
-		if os.IsNotExist(err) {
-			basics = utils.Basics{
-				Company:  utils.DefaultCompany,
-				SysAdmin: utils.GetSysAdmin(),
-				HelpURL:  "mailto:" + utils.GetSysAdmin(),
-				TimeZone: utils.GetTimeZone(),
-				Language: agent.GetLanguage(),
-				Region:   agent.GetRegion(),
-				RegTTL:   utils.DefaultRegTTL,
-				DMARC:    utils.DefaultDMARC,
-			}
-		} else {
-			return fmt.Errorf("failed to read %s: %w", utils.BasicsName, err)
-		}
-	} else {
-		if err := json.Unmarshal(content, &basics); err != nil {
-			return fmt.Errorf("failed to unmarshal %s: %w", utils.BasicsName, err)
-		}
+		return err
 	}
 
 	if !basicsHasChanges(c) {
-		printBasics(basics)
+		printBasics(c.App.Writer, bsc)
 		return nil
 	}
 
 	if c.IsSet("company") {
-		basics.Company = c.String("company")
+		bsc.Company = c.String("company")
+	}
+	if c.IsSet("domain") {
+		bsc.Domain = c.String("domain")
 	}
 	if c.IsSet("sysadmin") {
-		basics.SysAdmin = c.String("sysadmin")
+		bsc.SysAdmin = c.String("sysadmin")
 	}
 	if c.IsSet("help-url") {
-		basics.HelpURL = c.String("help-url")
+		bsc.HelpURL = c.String("help-url")
 	}
 	if c.IsSet("timezone") {
-		basics.TimeZone = c.String("timezone")
+		bsc.TimeZone = c.String("timezone")
 	}
 	if c.IsSet("language") {
-		basics.Language = c.String("language")
+		bsc.Language = c.String("language")
 	}
 	if c.IsSet("region") {
-		basics.Region = c.String("region")
+		bsc.Region = c.String("region")
 	}
 	if c.IsSet("reg-ttl") {
-		basics.RegTTL = c.Int("reg-ttl")
+		bsc.RegTTL = c.Int("reg-ttl")
 	}
 
-	// There must always be a DMARC value
 	if c.IsSet("dmarc") {
-		basics.DMARC = c.String("dmarc")
+		bsc.DMARC = c.String("dmarc")
 	}
-	if basics.DMARC == "" {
-		basics.DMARC = utils.DefaultDMARC
+	if bsc.DMARC == "" {
+		bsc.DMARC = utils.DefaultDMARC
 	}
 
-	if err := basics.Save(); err != nil {
+	if err := bsc.Save(); err != nil {
 		return err
 	}
 
@@ -142,6 +116,7 @@ func Run(c *cli.Context) error {
 
 func basicsHasChanges(c *cli.Context) bool {
 	return c.IsSet("company") ||
+		c.IsSet("domain") ||
 		c.IsSet("sysadmin") ||
 		c.IsSet("help-url") ||
 		c.IsSet("timezone") ||
@@ -151,16 +126,17 @@ func basicsHasChanges(c *cli.Context) bool {
 		c.IsSet("dmarc")
 }
 
-func printBasics(b utils.Basics) {
-	fmt.Printf("%-12s  %s\n", "KEY", "VALUE")
-	fmt.Printf("%-12s  %s\n", "------------", "------------------------------")
+func printBasics(w io.Writer, bsc *utils.Basics) {
+	fmt.Fprintf(w, "%-12s  %s\n", "KEY", "VALUE")
+	fmt.Fprintf(w, "%-12s  %s\n", "------------", "------------------------------")
 
-	fmt.Printf("%-12s  %s\n", "Company", b.Company)
-	fmt.Printf("%-12s  %s\n", "SysAdmin", b.SysAdmin)
-	fmt.Printf("%-12s  %s\n", "HelpURL", b.HelpURL)
-	fmt.Printf("%-12s  %s\n", "TimeZone", b.TimeZone)
-	fmt.Printf("%-12s  %s\n", "Language", b.Language)
-	fmt.Printf("%-12s  %s\n", "Region", b.Region)
-	fmt.Printf("%-12s  %d\n", "RegTTL", b.RegTTL)
-	fmt.Printf("%-12s  %s\n", "DMARC", b.DMARC)
+	fmt.Fprintf(w, "%-12s  %s\n", "Company", bsc.Company)
+	fmt.Fprintf(w, "%-12s  %s\n", "Domain", bsc.Domain)
+	fmt.Fprintf(w, "%-12s  %s\n", "SysAdmin", bsc.SysAdmin)
+	fmt.Fprintf(w, "%-12s  %s\n", "HelpURL", bsc.HelpURL)
+	fmt.Fprintf(w, "%-12s  %s\n", "TimeZone", bsc.TimeZone)
+	fmt.Fprintf(w, "%-12s  %s\n", "Language", bsc.Language)
+	fmt.Fprintf(w, "%-12s  %s\n", "Region", bsc.Region)
+	fmt.Fprintf(w, "%-12s  %d\n", "RegTTL", bsc.RegTTL)
+	fmt.Fprintf(w, "%-12s  %s\n", "DMARC", bsc.DMARC)
 }

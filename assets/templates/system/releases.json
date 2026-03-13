@@ -91,7 +91,6 @@
       "directory": "mediawiki",
       "versions": [
         {
-          "key": "1.45.1",
           "number": "1.45.1",
           "series": "1.45",
           "download": {
@@ -109,7 +108,6 @@
       "directory": "nextcloud",
       "versions": [
         {
-          "key": "32.0.2",
           "number": "32.0.2",
           "series": "32",
           "download": {
@@ -127,7 +125,6 @@
       "binary": "ocis",
       "versions": [
         {
-          "key": "7.2.0",
           "number": "7.2.0",
           "series": "7",
           "download": {
@@ -144,7 +141,6 @@
       "default": "1.6.11",
       "versions": [
         {
-          "key": "1.6.11",
           "number": "1.6.11",
           "series": "1.6",
           "download": {
@@ -162,7 +158,6 @@
       "default": "1.1.15",
       "versions": [
         {
-          "key": "1.1.15",
           "number": "1.1.15",
           "series": "1.1",
           "download": {
@@ -180,7 +175,6 @@
       "default": "1.6.3",
       "versions": [
         {
-          "key": "1.6.3",
           "number": "1.6.3",
           "series": "1.6",
           "download": {
@@ -199,7 +193,6 @@
       "directory": "wordpress",
       "versions": [
         {
-          "key": "6.8.1",
           "number": "6.8.1",
           "series": "6",
           "download": {
@@ -217,7 +210,6 @@
       "binary": "wp-cli",
       "versions": [
         {
-          "key": "2.12.0",
           "number": "2.12.0",
           "series": "2",
           "download": {
