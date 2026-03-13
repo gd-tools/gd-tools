@@ -19,6 +19,9 @@ const (
 	ConfigName    = "config"
 	ConfigFile    = ConfigName + ".json"
 	ConfigTimeout = 10
+
+	RunPrefix = "[run]"
+	DebugPrefix = "[dbg] ##########"
 )
 
 type Config struct {
@@ -28,8 +31,6 @@ type Config struct {
 	Baseline *assets.Baseline `json:"-"`
 
 	Verbose  bool           `json:"-"`
-	Quiet    bool           `json:"-"`
-	Dry      bool           `json:"-"`
 	Force    bool           `json:"-"`
 	Delete   bool           `json:"-"`
 	SkipDNS  bool           `json:"-"`
@@ -83,10 +84,6 @@ type Config struct {
 }
 
 var (
-	FlagDry = &cli.BoolFlag{
-		Name:  "dry",
-		Usage: "display commands instead of executing them",
-	}
 	FlagVerbose = &cli.BoolFlag{
 		Name:  "verbose",
 		Usage: "print extended debugging information",
@@ -190,7 +187,6 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 
 	if c != nil {
 		cfg.Verbose = c.Bool("verbose")
-		cfg.Dry = c.Bool("dry")
 		cfg.Force = c.Bool("force")
 		cfg.Delete = c.Bool("delete")
 		cfg.SkipDNS = c.Bool("skip-dns")
@@ -308,8 +304,6 @@ func (cfg *Config) NewRequest() *agent.Request {
 		Version:  agent.ProtocolVersion,
 		Conn:     cfg.Conn,
 		Verbose:  cfg.Verbose,
-		Quiet:    cfg.Quiet,
-		Dry:      cfg.Dry,
 		Language: cfg.Language,
 		Region:   cfg.Region,
 	}
@@ -354,76 +348,46 @@ func (cfg *Config) CheckFQDN(fqdn string, add bool) error {
 	return nil
 }
 
-func (cfg *Config) Say(args ...any) bool {
-	if cfg.Quiet {
-		return cfg.Dry
+func (cfg *Config) Say(args ...any) {
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case []string:
+			for _, line := range v {
+				fmt.Println(RunPrefix, line)
+			}
+		default:
+			fmt.Println(RunPrefix, fmt.Sprint(arg))
+		}
 	}
-	prefix := "[run]"
-	if cfg.Dry {
-		prefix = "[dry]"
-	}
+}
+
+func (cfg *Config) Sayf(format string, args ...any) {
+	fmt.Println(RunPrefix, fmt.Sprintf(format, args...))
+}
+
+func (cfg *Config) Debug(args ...any) {
+        if !cfg.Verbose {
+                return
+        }
 
 	for _, arg := range args {
 		switch v := arg.(type) {
 		case []string:
 			for _, line := range v {
-				fmt.Println(prefix, line)
+				fmt.Println(DebugPrefix, line)
 			}
 		default:
-			fmt.Println(prefix, fmt.Sprint(arg))
+			fmt.Println(DebugPrefix, fmt.Sprint(arg))
 		}
 	}
-
-	return cfg.Dry
 }
 
-func (cfg *Config) Sayf(format string, args ...any) bool {
-	if cfg.Quiet {
-		return cfg.Dry
-	}
-	prefix := "[run]"
-	if cfg.Dry {
-		prefix = "[dry]"
-	}
-	fmt.Println(prefix, fmt.Sprintf(format, args...))
-	return cfg.Dry
-}
+func (cfg *Config) Debugf(format string, args ...any) {
+        if !cfg.Verbose {
+                return
+        }
 
-func (cfg *Config) Debug(args ...any) bool {
-	if !cfg.Verbose {
-		return cfg.Dry
-	}
-
-	prefix := "[run] ##########"
-	if cfg.Dry {
-		prefix = "[dry] ##########"
-	}
-
-	for _, arg := range args {
-		switch v := arg.(type) {
-		case []string:
-			for _, line := range v {
-				fmt.Println(prefix, line)
-			}
-		default:
-			fmt.Println(prefix, fmt.Sprint(arg))
-		}
-	}
-
-	return cfg.Dry
-}
-
-func (cfg *Config) Debugf(format string, args ...any) bool {
-	if !cfg.Verbose {
-		return cfg.Dry
-	}
-
-	prefix := "[run] ##########"
-	if cfg.Dry {
-		prefix = "[dry] ##########"
-	}
-	fmt.Println(prefix, fmt.Sprintf(format, args...))
-	return cfg.Dry
+	fmt.Println(DebugPrefix, fmt.Sprintf(format, args...))
 }
 
 func (cfg *Config) AddFirewall(port string) {
@@ -435,22 +399,4 @@ func (cfg *Config) AddFirewall(port string) {
 
 	cfg.Firewall = append(cfg.Firewall, port)
 	sort.Strings(cfg.Firewall)
-}
-
-func StringSlicesEqual(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	m := make(map[string]int)
-	for _, s := range a {
-		m[s]++
-	}
-	for _, s := range b {
-		if m[s] == 0 {
-			return false
-		}
-		m[s]--
-	}
-	return true
 }

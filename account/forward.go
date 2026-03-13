@@ -13,7 +13,6 @@ var ForwardCommand = &cli.Command{
 	Usage: "add or delete forwarding targets for a mailbox",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		&cli.BoolFlag{
 			Name:  "dismiss",
 			Usage: "forward only (do not keep local copy)",

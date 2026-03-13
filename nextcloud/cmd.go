@@ -24,7 +24,6 @@ var Command = &cli.Command{
 	Description: Describe,
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		&cli.BoolFlag{
 			Name:  "update",
 			Usage: "update an existing Nextcloud instance",

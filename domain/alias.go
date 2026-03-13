@@ -13,7 +13,6 @@ var AliasCommand = &cli.Command{
 	Usage: "add or delete alias names for domain",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 	},
 	ArgsUsage: "<domain> add|delete <alias>",
 	Action:    AliasRun,

@@ -22,7 +22,6 @@ var Command = &cli.Command{
 	Description: Describe,
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		&cli.StringFlag{
 			Name:  "admin",
 			Usage: "name of OCIS admin user",

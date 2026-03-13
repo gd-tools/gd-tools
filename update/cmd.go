@@ -1,10 +1,6 @@
 package update
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/gd-tools/gd-tools/config"
 	"github.com/gd-tools/gd-tools/setup"
 	"github.com/gd-tools/gd-tools/utils"
@@ -26,14 +22,9 @@ var Command = &cli.Command{
 	Description: Describe,
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		&cli.BoolFlag{
 			Name:  "basics",
 			Usage: "update values from $(GD_TOOLS_BASE)/basics.json",
-		},
-		&cli.BoolFlag{
-			Name:  "routing",
-			Usage: "update routing.json from server root directory",
 		},
 		setup.FlagDMARC,
 		setup.FlagCompany,
@@ -64,18 +55,6 @@ func Run(c *cli.Context) error {
 		cfg.Region = basics.Region
 		cfg.RegTTL = basics.RegTTL
 		cfg.DMARC = basics.DMARC
-	}
-
-	// Update routing.json if requested
-	if c.Bool("routing") {
-		path := filepath.Join("..", config.RoutingName)
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("failed to read %s: %w", config.RoutingName, err)
-		}
-		if err := os.WriteFile(config.RoutingName, content, 0644); err != nil {
-			return fmt.Errorf("failed to write %s: %w", config.RoutingName, err)
-		}
 	}
 
 	// There must always be a DMARC value

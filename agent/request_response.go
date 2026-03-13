@@ -19,8 +19,6 @@ type Request struct {
 	Version int       `json:"version"`
 	Conn    *tls.Conn `json:"-"`
 	Verbose bool      `json:"-"`
-	Quiet   bool      `json:"-"`
-	Dry     bool      `json:"-"`
 
 	Hello     string   `json:"hello,omitempty"`
 	FQDN      string   `json:"fqdn,omitempty"`

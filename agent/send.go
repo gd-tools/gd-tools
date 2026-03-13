@@ -11,11 +11,6 @@ func (req *Request) Send() error {
 		return fmt.Errorf("oops - no req.Conn?")
 	}
 
-	if req.Dry {
-		fmt.Println("[dry]", req)
-		return nil
-	}
-
 	if req.Verbose {
 		fmt.Printf("[run] Request: '%v'\n", req)
 	}
@@ -46,7 +41,6 @@ func (req *Request) Send() error {
 	}
 
 	if req.RustDesk != nil && resp.RustDesk != nil {
-
 		reqPub := req.RustDesk.GetPublic()
 		respPub := resp.RustDesk.GetPublic()
 		if reqPub != "" && respPub != "" && reqPub != respPub {
@@ -66,7 +60,7 @@ func (req *Request) Send() error {
 
 	if req.Verbose {
 		fmt.Printf("[run] Response: '%v'\n", &resp)
-	} else if !req.Quiet {
+	} else {
 		for _, line := range resp.Result {
 			fmt.Println("[run]", line)
 		}
@@ -75,14 +69,9 @@ func (req *Request) Send() error {
 	return nil
 }
 
-func (req *Request) SendToAgent(conn *tls.Conn, debug, dry bool) error {
+func (req *Request) SendToAgent(conn *tls.Conn, debug bool) error {
 	if conn == nil {
 		return fmt.Errorf("oops - no conn?")
-	}
-
-	if dry {
-		fmt.Println("[dry]", req)
-		return nil
 	}
 
 	if debug {

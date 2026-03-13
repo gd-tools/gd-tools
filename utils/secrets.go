@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-const (
+var (
 	SecretsName  = "secrets.json"
 	MailUserName = "mailuser"
 )

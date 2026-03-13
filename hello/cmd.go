@@ -10,7 +10,6 @@ var Command = &cli.Command{
 	Usage: "Check mTLS communication with production server",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		config.FlagPort,
 		&cli.IntFlag{
 			Name:  "timeout",

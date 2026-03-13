@@ -37,9 +37,6 @@ func (cfg *Config) SetA(zone, name, ip string) (string, error) {
 	msg := fmt.Sprintf("SetA %s -> %s = %v (ttl=%d)\n", zone, name, records, cfg.RegTTL)
 	if cfg.Verbose {
 		cfg.Debug(msg)
-	} else if cfg.Dry {
-		cfg.Say(msg)
-		return "", nil
 	}
 
 	p, err := cfg.DNSProvider()
@@ -69,9 +66,6 @@ func (cfg *Config) SetAAAA(zone, name, ip string) (string, error) {
 	msg := fmt.Sprintf("SetAAAA %s -> %s = %v (ttl=%d)\n", zone, name, records, cfg.RegTTL)
 	if cfg.Verbose {
 		cfg.Debug(msg)
-	} else if cfg.Dry {
-		cfg.Say(msg)
-		return "", nil
 	}
 
 	p, err := cfg.DNSProvider()
@@ -104,9 +98,6 @@ func (cfg *Config) SetHostSPF(zone, name, ip4, ip6 string) (string, error) {
 	msg := fmt.Sprintf("SetHostSPF %s -> %s = %v (ttl=%d)\n", zone, name, records, cfg.RegTTL)
 	if cfg.Verbose {
 		cfg.Debug(msg)
-	} else if cfg.Dry {
-		cfg.Say(msg)
-		return "", nil
 	}
 
 	p, err := cfg.DNSProvider()
@@ -136,9 +127,6 @@ func (cfg *Config) SetCNAME(zone, name string) (string, error) {
 	msg := fmt.Sprintf("SetCNAME %s -> %s = %v (ttl=%d)\n", zone, name, records, cfg.RegTTL)
 	if cfg.Verbose {
 		cfg.Debug(msg)
-	} else if cfg.Dry {
-		cfg.Say(msg)
-		return "", nil
 	}
 
 	p, err := cfg.DNSProvider()
@@ -242,9 +230,6 @@ func (cfg *Config) SetApexTXT(ctx context.Context, p dns.DNSProvider, domain *em
 	msg := fmt.Sprintf("SetApexTXT %s -> %v (ttl=%d)", domain.Name, records, cfg.RegTTL)
 	if cfg.Verbose {
 		cfg.Debug(msg)
-	} else if cfg.Dry {
-		cfg.Say(msg)
-		return "", nil
 	}
 
 	return p.UpsertRRSet(ctx, domain.Name, dns.RRSet{
@@ -265,9 +250,6 @@ func (cfg *Config) SetSTS(ctx context.Context, p dns.DNSProvider, domain *email.
 	msg := fmt.Sprintf("SetSTS %s -> %v (ttl=%d)", domain.Name, records, cfg.RegTTL)
 	if cfg.Verbose {
 		cfg.Debug(msg)
-	} else if cfg.Dry {
-		cfg.Say(msg)
-		return "", nil
 	}
 
 	return p.UpsertRRSet(ctx, domain.Name, dns.RRSet{
@@ -315,9 +297,6 @@ func (cfg *Config) SetDKIM(ctx context.Context, p dns.DNSProvider, domain *email
 
 	if cfg.Verbose {
 		cfg.Debug(msg)
-	} else if cfg.Dry {
-		cfg.Say(msg)
-		return "", nil
 	}
 
 	return p.UpsertRRSet(ctx, domain.Name, dns.RRSet{
@@ -344,9 +323,6 @@ func (cfg *Config) SetDMARC(ctx context.Context, p dns.DNSProvider, domain *emai
 	msg := fmt.Sprintf("SetDMARC %s (_dmarc) -> '%s' (ttl=%d)", domain.Name, domain.DMARC, cfg.RegTTL)
 	if cfg.Verbose {
 		cfg.Debug(msg)
-	} else if cfg.Dry {
-		cfg.Say(msg)
-		return "", nil
 	}
 
 	return p.UpsertRRSet(ctx, domain.Name, dns.RRSet{
@@ -378,9 +354,6 @@ func (cfg *Config) SetMX(ctx context.Context, p dns.DNSProvider, domain *email.D
 	msg := fmt.Sprintf("SetMX %s -> %v (ttl=%d)", domain.Name, records, cfg.RegTTL)
 	if cfg.Verbose {
 		cfg.Debug(msg)
-	} else if cfg.Dry {
-		cfg.Say(msg)
-		return "", nil
 	}
 
 	return p.UpsertRRSet(ctx, domain.Name, dns.RRSet{
@@ -405,9 +378,6 @@ func (cfg *Config) SetCAA(ctx context.Context, p dns.DNSProvider, domain *email.
 	msg := fmt.Sprintf("SetCAA %s -> %v (ttl=%d)", domain.Name, records, cfg.RegTTL)
 	if cfg.Verbose {
 		cfg.Debug(msg)
-	} else if cfg.Dry {
-		cfg.Say(msg)
-		return "", nil
 	}
 
 	return p.UpsertRRSet(ctx, domain.Name, dns.RRSet{

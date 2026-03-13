@@ -167,17 +167,6 @@ func (cfg *Config) SetupCA() error {
 }
 
 func checkFile(path string) bool {
-	f, err := os.Open(path)
-	if err != nil {
-		return false
-	}
-	defer f.Close()
-
-	buf := make([]byte, 1)
-	n, err := f.Read(buf)
-	if err != nil || n == 0 {
-		return false
-	}
-
-	return true
+	stat, err := os.Stat(path)
+	return err == nil && stat.Size() > 0
 }

@@ -1,7 +1,6 @@
 package setup
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -94,7 +93,6 @@ var Command = &cli.Command{
 	Description: Describe,
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		FlagBaseline,
 		FlagHetznerVolume,
 		FlagRaidDevice,
@@ -150,7 +148,6 @@ func Run(c *cli.Context) error {
 
 	cfg := config.Config{
 		Verbose:         c.Bool("verbose"),
-		Dry:             c.Bool("dry"),
 		BaselineName:    baseline.Name,
 		TimeZone:        basics.TimeZone,
 		Language:        basics.Language,
@@ -231,23 +228,6 @@ func Run(c *cli.Context) error {
 			Dir:      assets.GetToolsDir(""),
 		}
 		cfg.Mounts = append(cfg.Mounts, &mount)
-	}
-
-	if cfg.Dry {
-		cfg2 := cfg
-		cfg2.Spambarrier = "***"
-		cfg2.UbuntuPro = "***"
-		cfg2.HetznerToken = "***"
-		cfg2.IonosToken = "***"
-		cfg2.CloudflareToken = "***"
-
-		content, err := json.MarshalIndent(cfg2, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to marshal %s: %w", fqdn, err)
-		}
-		cfg.Sayf("Config: >%s<", string(content))
-
-		return nil
 	}
 
 	// From here on, we operate inside the host directory on the development workstation.

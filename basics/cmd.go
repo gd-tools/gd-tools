@@ -14,7 +14,6 @@ var Command = &cli.Command{
 	Usage: "Prepare or update gd-tools base directory",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		&cli.BoolFlag{
 			Name:  "routing",
 			Usage: "update routing.json from repository",

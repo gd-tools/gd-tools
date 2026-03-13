@@ -13,7 +13,6 @@ var CAACommand = &cli.Command{
 	Usage: "add or delete CAA records for domain",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 	},
 	ArgsUsage: "<domain> add|delete <caa>",
 	Action:    CAARun,

@@ -16,7 +16,6 @@ var Command = &cli.Command{
 	Description: Describe,
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		config.FlagDelete,
 		config.FlagForce,
 		&cli.StringFlag{

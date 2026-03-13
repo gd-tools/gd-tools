@@ -22,7 +22,6 @@ var Command = &cli.Command{
 	Description: Describe,
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		&cli.StringSliceFlag{
 			Name:  "alias",
 			Usage: "alias (redirected) domain (only if source starts with 'www')",

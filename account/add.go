@@ -26,7 +26,6 @@ var AddCommand = &cli.Command{
 	Description: AddDescribe,
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		&cli.StringFlag{
 			Name:  "password",
 			Usage: "system password (default: random string)",

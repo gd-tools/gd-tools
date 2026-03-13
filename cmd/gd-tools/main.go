@@ -19,6 +19,10 @@ import (
 	"github.com/gd-tools/gd-tools/assets"
 )
 
+const (
+	MaxRequestSize = 10 << 20 // 10 MB
+)
+
 var (
 	lockFile *os.File
 )
@@ -101,7 +105,11 @@ var Handlers = []Handler{
 func acquireAgentLock() {
 	var err error
 
-	lockFile, err = os.OpenFile("/var/lock/gd-tools-agent.lock", os.O_CREATE|os.O_RDWR, 0600)
+	lockFile, err = os.OpenFile(
+		"/var/lock/gd-tools-agent.lock",
+		os.O_CREATE|os.O_RDWR,
+		0600,
+	)
 	if err != nil {
 		log.Fatalf("failed to open lock file: %v", err)
 	}
@@ -113,6 +121,7 @@ func acquireAgentLock() {
 
 func main() {
 	acquireAgentLock()
+
 	defer func() {
 		if lockFile != nil {
 			syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN)
@@ -120,7 +129,7 @@ func main() {
 		}
 	}()
 
-	port := flag.String("port", agent.DefaultPort, "Port to listen on (default 5320)")
+	port := flag.String("port", agent.DefaultPort, "Port to listen on")
 	verbose := flag.Bool("verbose", false, "Enable debug output")
 	flag.Parse()
 
@@ -153,19 +162,23 @@ func main() {
 		if block == nil {
 			log.Fatalf("CA fingerprint error: invalid PEM data")
 		}
+
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
 			log.Fatalf("CA fingerprint parse error: %v", err)
 		}
+
 		sum := sha256.Sum256(cert.Raw)
 		log.Printf("CA SHA256 Fingerprint: %s", formatFingerprint(sum))
 	}
 
 	address := ":" + *port
+
 	ln, err := tls.Listen("tcp", address, tlsCfg)
 	if err != nil {
 		log.Fatalf("failed to listen on port %s: %v", *port, err)
 	}
+
 	log.Printf("INFO: gd-tools agent started on port %s", *port)
 
 	for {
@@ -181,9 +194,11 @@ func main() {
 
 func formatFingerprint(sum [32]byte) string {
 	var parts []string
+
 	for _, b := range sum {
 		parts = append(parts, fmt.Sprintf("%02X", b))
 	}
+
 	return strings.Join(parts, ":")
 }
 
@@ -191,60 +206,89 @@ func handleConnection(c net.Conn) {
 	defer c.Close()
 
 	for {
-		var req agent.Request
-		var resp agent.Response
-
-		decoder := json.NewDecoder(c)
-		if err := decoder.Decode(&req); err != nil {
-			if err == io.EOF {
-				// client closed connection, no real error
-				return
-			}
-			err := fmt.Errorf("failed to decode command: %w", err)
-			EncodeResponse(c, &resp, err)
+		if err := handleRequest(c); err != nil {
 			return
 		}
-
-		if req.Version != agent.ProtocolVersion {
-			err := fmt.Errorf("protocol mismatch, expected %d, got %d", agent.ProtocolVersion, req.Version)
-			EncodeResponse(c, &resp, err)
-			return
-		}
-
-		for _, service := range req.Services {
-			resp.AddService(service)
-		}
-
-		for _, handler := range Handlers {
-			if handler.Test(&req) {
-				log.Printf("entering handler: %s", handler.Name)
-				if err := handler.Func(&req, &resp); err != nil {
-					err := fmt.Errorf("failed to complete handler %s: %v", handler.Name, err)
-					EncodeResponse(c, &resp, err)
-					return
-				}
-				log.Printf("leaving handler: %s", handler.Name)
-			}
-		}
-
-		for _, service := range resp.Services {
-			status, err := agent.StartService(service)
-			if err != nil {
-				EncodeResponse(c, &resp, err)
-				return
-			}
-			resp.Say(status)
-		}
-
-		if len(req.Firewall) > 0 {
-			if err := resp.FirewallOpen(c, req.Firewall); err != nil {
-				EncodeResponse(c, &resp, err)
-				return
-			}
-		}
-
-		EncodeResponse(c, &resp, nil)
 	}
+}
+
+func handleRequest(c net.Conn) error {
+	var req agent.Request
+	var resp agent.Response
+
+	defer func() {
+		if r := recover(); r != nil {
+			err := fmt.Errorf("panic in handler: %v", r)
+			EncodeResponse(c, &resp, err)
+		}
+	}()
+
+	decoder := json.NewDecoder(io.LimitReader(c, MaxRequestSize))
+
+	if err := decoder.Decode(&req); err != nil {
+		if err == io.EOF {
+			return err
+		}
+
+		err := fmt.Errorf("failed to decode command: %w", err)
+		EncodeResponse(c, &resp, err)
+		return err
+	}
+
+	if req.Version != agent.ProtocolVersion {
+		err := fmt.Errorf(
+			"protocol mismatch, expected %d, got %d",
+			agent.ProtocolVersion,
+			req.Version,
+		)
+
+		EncodeResponse(c, &resp, err)
+		return err
+	}
+
+	for _, service := range req.Services {
+		resp.AddService(service)
+	}
+
+	for _, handler := range Handlers {
+		if handler.Test(&req) {
+			log.Printf("entering handler: %s", handler.Name)
+
+			if err := handler.Func(&req, &resp); err != nil {
+				err := fmt.Errorf(
+					"failed to complete handler %s: %v",
+					handler.Name,
+					err,
+				)
+
+				EncodeResponse(c, &resp, err)
+				return err
+			}
+
+			log.Printf("leaving handler: %s", handler.Name)
+		}
+	}
+
+	for _, service := range resp.Services {
+		status, err := agent.StartService(service)
+		if err != nil {
+			EncodeResponse(c, &resp, err)
+			return err
+		}
+
+		resp.Say(status)
+	}
+
+	if len(req.Firewall) > 0 {
+		if err := resp.FirewallOpen(c, req.Firewall); err != nil {
+			EncodeResponse(c, &resp, err)
+			return err
+		}
+	}
+
+	EncodeResponse(c, &resp, nil)
+
+	return nil
 }
 
 func EncodeResponse(c net.Conn, resp *agent.Response, err error) {
@@ -256,6 +300,7 @@ func EncodeResponse(c net.Conn, resp *agent.Response, err error) {
 	}
 
 	encoder := json.NewEncoder(c)
+
 	if err := encoder.Encode(resp); err != nil {
 		log.Printf("failed to encode response: %v", err)
 	}

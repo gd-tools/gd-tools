@@ -14,7 +14,6 @@ var DeployCommand = &cli.Command{
 	Usage: "update account data on the production server",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		config.FlagPort,
 		config.FlagSkipDNS,
 		config.FlagSkipMX,

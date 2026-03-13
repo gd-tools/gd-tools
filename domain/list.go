@@ -13,7 +13,6 @@ var ListCommand = &cli.Command{
 	Usage: "list existing Email/DNS domains (incl. accounts)",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 	},
 	Action: ListRun,
 }

@@ -13,7 +13,6 @@ var SyncCommand = &cli.Command{
 	Usage: "synchronize an email domain with the production server",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		config.FlagForce,
 		config.FlagSkipDNS,
 		config.FlagSkipMX,

@@ -13,7 +13,6 @@ var Command = &cli.Command{
 	Usage: "Show mTLS status and certificate info",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		config.FlagPort,
 	},
 	Action: Run,

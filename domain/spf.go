@@ -13,7 +13,6 @@ var SPFCommand = &cli.Command{
 	Usage: "add or delete SPF includes for domain",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 	},
 	ArgsUsage: "<domain> add|delete <sender>",
 	Action:    SPFRun,

@@ -17,7 +17,6 @@ var ArchiveCommand = &cli.Command{
 	ArgsUsage: "[domain]",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		&cli.BoolFlag{
 			Name:  "all",
 			Usage: "archive all found certificate directories (requires --force)",

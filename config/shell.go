@@ -13,13 +13,11 @@ func (cfg *Config) LocalScript(commands []string) ([]byte, error) {
 	if len(commands) == 0 {
 		return nil, fmt.Errorf("no local commands provided")
 	}
-	script := "set -e; " + strings.Join(commands, " && ")
-
-	cfg.Debugf("running '%s'", script)
-	if cfg.Dry {
-		return nil, nil
+	for _, line := range commands {
+		cfg.Sayf("run '%s'", line)
 	}
 
+	script := "set -e; " + strings.Join(commands, " && ")
 	cmd := exec.Command("sh", "-c", script)
 	cmd.Env = append(os.Environ(), "LANG=C")
 	for _, env := range cfg.CmdEnv {
@@ -36,9 +34,6 @@ func (cfg *Config) LocalScript(commands []string) ([]byte, error) {
 
 func (cfg *Config) LocalCommand(name string, args ...string) ([]byte, error) {
 	cfg.Sayf("run '%s %s'", name, strings.Join(args, " "))
-	if cfg.Dry {
-		return nil, nil
-	}
 
 	cmd := exec.Command(name, args...)
 	cmd.Env = append(os.Environ(), "LANG=C")
@@ -72,11 +67,7 @@ func (cfg *Config) RemoteScript(commands []string) error {
 
 func (cfg *Config) RemoteCmd(command string) error {
 	rootUser := cfg.RootUser()
-
 	cfg.Sayf("ssh %s %q", rootUser, command)
-	if cfg.Dry {
-		return nil
-	}
 
 	cmd := exec.Command("ssh", rootUser, command)
 	output, err := cmd.CombinedOutput()

@@ -25,7 +25,6 @@ var Command = &cli.Command{
 	Description: Describe,
 	Flags: []cli.Flag{
 		config.FlagVerbose,
-		config.FlagDry,
 		&cli.StringFlag{
 			Name:  "passphrase",
 			Usage: "passphrase for Borg (uses repokey-blake2)",

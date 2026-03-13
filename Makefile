@@ -47,8 +47,12 @@ format:
 	go fmt ./...
 
 test:
+	go test ./agent
 	go test ./assets
 	go test ./basics
+	go test ./cmd/gd-tools
+	go test ./config
+	go test ./hello
 	go test ./utils
 	# TODO go test ./...
 

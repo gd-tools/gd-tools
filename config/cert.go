@@ -73,11 +73,6 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 		}
 	}
 
-	if cfg.Dry {
-		cfg.Sayf("[dry] obtaining Certificate for %s", domain)
-		return nil
-	}
-
 	key, err := acme.GetPrivateKey(ACME_Account_Key)
 	if err != nil {
 		return err

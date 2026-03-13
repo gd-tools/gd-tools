@@ -28,9 +28,7 @@ func join(base string, paths ...string) string {
 	if len(paths) == 0 {
 		return base
 	}
-
-	all := append([]string{base}, paths...)
-	return filepath.Join(all...)
+	return filepath.Join(append([]string{base}, paths...)...)
 }
 
 func GetRootDir(paths ...string) string {
@@ -62,17 +60,9 @@ func GetDownloadsDir(paths ...string) string {
 }
 
 func GetApacheToolsDir(paths ...string) string {
-	toolsDir := GetToolsDir("data", "apache")
-	if len(paths) == 0 {
-		return toolsDir
-	}
-	return filepath.Join(append([]string{toolsDir}, paths...)...)
+	return join(GetToolsDir("data", "apache"), paths...)
 }
 
 func GetApacheEtcDir(paths ...string) string {
-	etcDir := GetEtcDir("apache2")
-	if len(paths) == 0 {
-		return etcDir
-	}
-	return filepath.Join(append([]string{etcDir}, paths...)...)
+	return join(GetEtcDir("apache2"), paths...)
 }

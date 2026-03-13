@@ -8,22 +8,20 @@ import (
 )
 
 // RunShell executes a list of shell commands on the local system.
-// Commands are joined with && and run as a single shell script.
+// Commands are joined as a small shell script.
 // Returns an error if any command fails.
 func RunShell(commands []string) ([]byte, error) {
 	if len(commands) == 0 {
 		return nil, fmt.Errorf("no local commands provided")
 	}
-	script := "set -e; " + strings.Join(commands, " && ")
 
-	cmd := exec.Command("sh", "-c", script)
+	script := "set -euo pipefail\n" + strings.Join(commands, "\n")
+	cmd := exec.Command("bash", "-c", script)
 	cmd.Env = append(os.Environ(), "LANG=C")
-
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("shell failed: %w\nOutput:\n%s", err, output)
+		return nil, fmt.Errorf("shell failed: %w\nScript:\n%s\nOutput:\n%s", err, script, output)
 	}
-
 	return output, nil
 }
 
@@ -31,10 +29,9 @@ func RunShell(commands []string) ([]byte, error) {
 func RunCommand(name string, args ...string) ([]byte, error) {
 	cmd := exec.Command(name, args...)
 	cmd.Env = append(os.Environ(), "LANG=C")
-
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("command failed: %w\nOutput:\n%s", err, output)
+		return nil, fmt.Errorf("command failed: %w\nCommand: %s %s\nOutput:\n%s", err, name, strings.Join(args, " "), output)
 	}
 	return output, nil
 }
@@ -46,10 +43,8 @@ func StartService(service string) (string, error) {
 		"systemctl reset-failed " + service,
 		"systemctl restart " + service,
 	}
-
 	if _, err := RunShell(cmds); err != nil {
 		return "", fmt.Errorf("failed to start service %s: %w", service, err)
 	}
-
 	return fmt.Sprintf("✅ service %s was (re)started", service), nil
 }

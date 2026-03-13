@@ -9,9 +9,7 @@ import (
 	"sort"
 )
 
-const (
-	UserIDsName = "user_ids.json"
-)
+var UserIDsName = "user_ids.json"
 
 type User struct {
 	Name    string   `json:"name"`
