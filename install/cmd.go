@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gd-tools/gd-tools/agent"
 	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/config"
 	"github.com/urfave/cli/v2"
-)
-
-const (
-	HetznerTempName = "hetzner.api"
 )
 
 var Describe = `The install command turns an innocent server into a gd-tools production server.
@@ -51,7 +48,7 @@ func Run(c *cli.Context) error {
 		return fmt.Errorf("failed to install %s: %w", etcTools, err)
 	}
 
-	if _, err := cfg.LocalCommand(
+	if _, err := agent.RunCommand(
 		"rsync",
 		cfg.RsyncFlags(),
 		"--chown=root:root",
@@ -69,7 +66,7 @@ func Run(c *cli.Context) error {
 	}
 	for _, prog := range gdProgs {
 		progPath := assets.GetBinDir(prog)
-		if _, err := cfg.LocalCommand(
+		if _, err := agent.RunCommand(
 			"rsync",
 			cfg.RsyncFlags(),
 			"--chown=root:root",
@@ -99,7 +96,7 @@ func Run(c *cli.Context) error {
 	defer os.Remove(service)
 
 	systemd := assets.GetEtcDir("systemd", "system", service)
-	if _, err := cfg.LocalCommand(
+	if _, err := agent.RunCommand(
 		"rsync",
 		cfg.RsyncFlags(),
 		"--chown=root:root",

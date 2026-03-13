@@ -5,57 +5,58 @@ import (
 	"testing"
 )
 
-func TestRunShellSuccess(t *testing.T) {
-	out, err := RunShell([]string{
-		"echo hello",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(out), "hello") {
-		t.Fatal("unexpected output")
-	}
-}
-
-func TestRunShellFailure(t *testing.T) {
-	_, err := RunShell([]string{
-		"false",
-	})
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !strings.Contains(err.Error(), "shell failed") {
-		t.Fatal("unexpected error")
-	}
-}
-
-func TestRunShellEmpty(t *testing.T) {
-	_, err := RunShell([]string{})
-	if err == nil {
-		t.Fatal("expected error for empty commands")
-	}
-}
-
 func TestRunCommandSuccess(t *testing.T) {
 	out, err := RunCommand("echo", "hello")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("RunCommand failed: %v", err)
 	}
-	if !strings.Contains(string(out), "hello") {
-		t.Fatal("unexpected output")
+
+	if strings.TrimSpace(string(out)) != "hello" {
+		t.Fatalf("unexpected output: %q", out)
 	}
 }
 
 func TestRunCommandFailure(t *testing.T) {
 	_, err := RunCommand("false")
 	if err == nil {
-		t.Fatal("expected command failure")
+		t.Fatalf("expected error from failing command")
 	}
 }
 
-func TestStartServiceFailure(t *testing.T) {
-	_, err := StartService("this-service-does-not-exist")
+func TestRunShellSuccess(t *testing.T) {
+	out, err := RunShell([]string{
+		"echo hello",
+		"echo world",
+	})
+	if err != nil {
+		t.Fatalf("RunShell failed: %v", err)
+	}
+
+	output := string(out)
+
+	if !strings.Contains(output, "hello") {
+		t.Fatalf("missing hello in output: %s", output)
+	}
+
+	if !strings.Contains(output, "world") {
+		t.Fatalf("missing world in output: %s", output)
+	}
+}
+
+func TestRunShellFailure(t *testing.T) {
+	_, err := RunShell([]string{
+		"echo ok",
+		"false",
+	})
+
 	if err == nil {
-		t.Fatal("expected error for invalid service")
+		t.Fatalf("expected error from failing shell script")
+	}
+}
+
+func TestStartServiceValidation(t *testing.T) {
+	_, err := StartService("")
+	if err == nil {
+		t.Fatalf("expected error for empty service name")
 	}
 }

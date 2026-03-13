@@ -8,16 +8,17 @@ import (
 )
 
 // RunShell executes a list of shell commands on the local system.
+// This can be the development as well as production system.
 // Commands are joined as a small shell script.
 // Returns an error if any command fails.
 func RunShell(commands []string) ([]byte, error) {
 	if len(commands) == 0 {
-		return nil, fmt.Errorf("no local commands provided")
+		return nil, fmt.Errorf("no commands provided")
 	}
 
 	script := "set -euo pipefail\n" + strings.Join(commands, "\n")
 	cmd := exec.Command("bash", "-c", script)
-	cmd.Env = append(os.Environ(), "LANG=C")
+	cmd.Env = append(os.Environ(), "LANG=C", "LC_ALL=C")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("shell failed: %w\nScript:\n%s\nOutput:\n%s", err, script, output)
@@ -28,7 +29,7 @@ func RunShell(commands []string) ([]byte, error) {
 // RunCommand executes a single shell command.
 func RunCommand(name string, args ...string) ([]byte, error) {
 	cmd := exec.Command(name, args...)
-	cmd.Env = append(os.Environ(), "LANG=C")
+	cmd.Env = append(os.Environ(), "LANG=C", "LC_ALL=C")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("command failed: %w\nCommand: %s %s\nOutput:\n%s", err, name, strings.Join(args, " "), output)
@@ -37,6 +38,10 @@ func RunCommand(name string, args ...string) ([]byte, error) {
 }
 
 func StartService(service string) (string, error) {
+	if service == "" {
+		return "", fmt.Errorf("service name missing")
+	}
+
 	cmds := []string{
 		"systemctl daemon-reload",
 		"systemctl enable " + service,

@@ -20,7 +20,7 @@ const (
 	ConfigFile    = ConfigName + ".json"
 	ConfigTimeout = 10
 
-	RunPrefix = "[run]"
+	RunPrefix   = "[run]"
 	DebugPrefix = "[dbg] ##########"
 )
 
@@ -30,23 +30,21 @@ type Config struct {
 	Catalog  *assets.Catalog  `json:"-"`
 	Baseline *assets.Baseline `json:"-"`
 
-	Verbose  bool           `json:"-"`
-	Force    bool           `json:"-"`
-	Delete   bool           `json:"-"`
-	SkipDNS  bool           `json:"-"`
-	SkipMX   bool           `json:"-"`
-	Port     string         `json:"-"`
-	Conn     *tls.Conn      `json:"-"`
-	Req      *agent.Request `json:"-"`
-	CmdEnv   []string       `json:"-"`
-	Mailer   *Mailer        `json:"-"`
-	DKIMs    []string       `json:"-"`
-	Postfix  *Postfix       `json:"-"`
-	Password string         `json:"-"`
-	RootDir  string         `json:"-"`
-	BaseDir  string         `json:"-"`
-	LogsDir  string         `json:"-"`
-	CertDir  string         `json:"-"`
+	Verbose  bool      `json:"-"`
+	Force    bool      `json:"-"`
+	Delete   bool      `json:"-"`
+	SkipDNS  bool      `json:"-"`
+	SkipMX   bool      `json:"-"`
+	Port     string    `json:"-"`
+	Conn     *tls.Conn `json:"-"`
+	Mailer   *Mailer   `json:"-"`
+	DKIMs    []string  `json:"-"`
+	Postfix  *Postfix  `json:"-"`
+	Password string    `json:"-"`
+	RootDir  string    `json:"-"`
+	BaseDir  string    `json:"-"`
+	LogsDir  string    `json:"-"`
+	CertDir  string    `json:"-"`
 
 	Company  string `json:"company"`   // company name, used e.g. for Webmail
 	Domain   string `json:"domain"`    // company domain, used for building URLs
@@ -149,7 +147,10 @@ func ReadConfigPlus(c *cli.Context) (*Config, *agent.Request, error) {
 	}
 
 	timeout := cfg.Timeout
-	tmpTime := c.Int("timeout")
+	tmpTime := 0
+	if c != nil {
+		tmpTime = c.Int("timeout")
+	}
 	if tmpTime != 0 && tmpTime != timeout {
 		timeout = tmpTime
 	}
@@ -366,9 +367,9 @@ func (cfg *Config) Sayf(format string, args ...any) {
 }
 
 func (cfg *Config) Debug(args ...any) {
-        if !cfg.Verbose {
-                return
-        }
+	if !cfg.Verbose {
+		return
+	}
 
 	for _, arg := range args {
 		switch v := arg.(type) {
@@ -383,9 +384,9 @@ func (cfg *Config) Debug(args ...any) {
 }
 
 func (cfg *Config) Debugf(format string, args ...any) {
-        if !cfg.Verbose {
-                return
-        }
+	if !cfg.Verbose {
+		return
+	}
 
 	fmt.Println(DebugPrefix, fmt.Sprintf(format, args...))
 }

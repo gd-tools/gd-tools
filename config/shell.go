@@ -6,47 +6,9 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/gd-tools/gd-tools/agent"
 	"github.com/gd-tools/gd-tools/assets"
 )
-
-func (cfg *Config) LocalScript(commands []string) ([]byte, error) {
-	if len(commands) == 0 {
-		return nil, fmt.Errorf("no local commands provided")
-	}
-	for _, line := range commands {
-		cfg.Sayf("run '%s'", line)
-	}
-
-	script := "set -e; " + strings.Join(commands, " && ")
-	cmd := exec.Command("sh", "-c", script)
-	cmd.Env = append(os.Environ(), "LANG=C")
-	for _, env := range cfg.CmdEnv {
-		cmd.Env = append(os.Environ(), env)
-	}
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("shell failed: %w\nOutput:\n%s", err, output)
-	}
-
-	return output, nil
-}
-
-func (cfg *Config) LocalCommand(name string, args ...string) ([]byte, error) {
-	cfg.Sayf("run '%s %s'", name, strings.Join(args, " "))
-
-	cmd := exec.Command(name, args...)
-	cmd.Env = append(os.Environ(), "LANG=C")
-	for _, env := range cfg.CmdEnv {
-		cmd.Env = append(os.Environ(), env)
-	}
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("command failed: %w\nOutput:\n%s", err, output)
-	}
-	return output, nil
-}
 
 func (cfg *Config) CheckRemote(task string) bool {
 	cmd := exec.Command("ssh", cfg.RootUser(), task)
@@ -89,7 +51,7 @@ func (cfg *Config) PushCerts() {
 	}
 	certPath := assets.GetToolsDir("data", "certs")
 
-	if _, err := cfg.LocalCommand(
+	if _, err := agent.RunCommand(
 		"rsync",
 		cfg.RsyncFlags(),
 		"--chown=root:root",

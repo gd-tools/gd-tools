@@ -78,7 +78,7 @@ func (cfg *Config) DeployNextcloud(nc *agent.Nextcloud) error {
 	// if all went well, install the occ-<name> command
 	occSrc := assets.GetBinDir("gd-occ")
 	occDst := assets.GetBinDir("occ-" + nc.Name)
-	if _, err := cfg.LocalCommand(
+	if _, err := agent.RunCommand(
 		"rsync",
 		cfg.RsyncFlags(),
 		"--chown=root:root",

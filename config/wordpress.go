@@ -570,7 +570,7 @@ func (cfg *Config) WordPressWpCli(wp *WordPress) error {
 	wpSrc := assets.GetBinDir("gd-wp-cli")
 	wpDst := assets.GetBinDir("wp-" + wp.Name())
 
-	if _, err := cfg.LocalCommand(
+	if _, err := agent.RunCommand(
 		"rsync",
 		cfg.RsyncFlags(),
 		"--chown=root:root",
