@@ -1,3 +1,0 @@
-INSERT INTO t VALUES ('a;b');
-SELECT 1;
-

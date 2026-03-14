@@ -1,10 +1,13 @@
 package platform
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/gd-tools/gd-tools/utils"
 )
+
+const ProductsPath = "system/products.json"
 
 // Release describes one specific release entry for a product.
 type Release struct {
@@ -27,7 +30,18 @@ type Product struct {
 // DefaultProducts returns the products embedded in the gdt binary.
 // The concrete content will be filled when the old assets catalog is migrated.
 func DefaultProducts() []Product {
-	return nil
+	data, err := Render(ProductsPath, nil)
+	if err != nil {
+		return nil // error will be reported later
+	}
+
+	var products []Product
+	err = json.Unmarshal(data, &products)
+	if err != nil {
+		return nil // error will be reported later
+	}
+
+	return products
 }
 
 // FindProduct returns one product by name.

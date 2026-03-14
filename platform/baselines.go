@@ -1,10 +1,13 @@
 package platform
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/gd-tools/gd-tools/utils"
 )
+
+const BaselinesPath = "system/baselines.json"
 
 // Baseline describes the platform runtime environment.
 type Baseline struct {
@@ -17,9 +20,19 @@ type Baseline struct {
 }
 
 // DefaultBaselines returns the baselines embedded in the gdt binary.
-// The concrete content will be filled from the migrated release/catalog data.
 func DefaultBaselines() []Baseline {
-	return nil
+	data, err := Render(BaselinesPath, nil)
+	if err != nil {
+		return nil // error will be reported later
+	}
+
+	var baselines []Baseline
+	err = json.Unmarshal(data, &baselines)
+	if err != nil {
+		return nil // error will be reported later
+	}
+
+	return baselines
 }
 
 // GetBaseline returns one baseline by name.

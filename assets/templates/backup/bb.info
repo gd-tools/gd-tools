@@ -1,9 +1,0 @@
-#!/bin/bash
-#
-# BorgBackup info
-#
-
-export BORG_PASSPHRASE="{{.PassPhrase}}"
-
-borg info {{.BorgRepo}}
-
