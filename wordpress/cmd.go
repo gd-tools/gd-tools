@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/gd-tools/gd-tools/assets"
 	"github.com/gd-tools/gd-tools/config"
 	"github.com/gd-tools/gd-tools/email"
+	"github.com/gd-tools/gd-tools/platform"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -76,19 +76,20 @@ func Run(c *cli.Context) error {
 	aliases := c.StringSlice("alias")
 	sort.Strings(aliases)
 
-	catalog, err := assets.LoadCatalog()
-	if err != nil {
-		return err
-	}
-	wpProd, wpRel, err := catalog.Get("wordpress", "")
-	if err != nil {
-		return err
-	}
-	cliProd, _, err := catalog.Get("wp-cli", "")
-	if err != nil {
-		return err
-	}
+pf, err := platform.LoadPlatform()
+if err != nil {
+	return err
+}
 
+wpProd, wpRel, err := pf.GetProduct("wordpress", "")
+if err != nil {
+	return err
+}
+
+cliProd, _, err := pf.GetProduct("wp-cli", "")
+if err != nil {
+	return err
+}
 	wp := config.WordPress{
 		HostName:     host,
 		DomainName:   domain,

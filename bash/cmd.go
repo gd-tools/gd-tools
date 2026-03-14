@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gd-tools/gd-tools/assets"
+	"github.com/gd-tools/gd-tools/platform"
 	"github.com/urfave/cli/v2"
 )
 
@@ -49,7 +49,7 @@ func Run(c *cli.Context) error {
 		Name: name,
 	}
 
-	out, err := assets.Render("system/completion.bash", data)
+	out, err := platform.Render("system/completion.bash", data)
 	if err != nil {
 		return err
 	}

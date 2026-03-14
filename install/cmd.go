@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/assets"
+	"github.com/gd-tools/gd-tools/platform"
 	"github.com/gd-tools/gd-tools/config"
 	"github.com/urfave/cli/v2"
 )

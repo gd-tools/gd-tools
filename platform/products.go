@@ -28,7 +28,6 @@ type Product struct {
 }
 
 // DefaultProducts returns the products embedded in the gdt binary.
-// The concrete content will be filled when the old assets catalog is migrated.
 func DefaultProducts() []Product {
 	data, err := Render(ProductsPath, nil)
 	if err != nil {
