@@ -47,8 +47,8 @@ format:
 	go fmt ./...
 
 test:
+	go test ./platform
 	go test ./agent
-	go test ./assets
 	go test ./basics
 	go test ./cmd/gd-tools
 	go test ./config
