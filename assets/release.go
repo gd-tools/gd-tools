@@ -7,12 +7,9 @@ import (
 	"github.com/gd-tools/gd-tools/utils"
 )
 
-const (
-	ReleasesName = "releases"
-	ReleasesFile = ReleasesName + ".json"
-)
+const ReleasesFile = "releases.json"
 
-// Download describes a specific loadable asset, e.g. a zip or tar archive.
+// Download describes a specific loadable asset, e.g. a zip archive or binary.
 type Download struct {
 	DownloadURL string `json:"download_url"`
 	Filename    string `json:"filename"`
@@ -83,16 +80,16 @@ func (c *Catalog) GetBaseline(name string) (*Baseline, error) {
 	return nil, fmt.Errorf("baseline %q not found", name)
 }
 
-// Get returns a specific release for one product.
+// GetProduct returns a specific release for one product.
 // Return the default release if num is empty.
-func (c *Catalog) Get(name, num string) (*Product, *Release, error) {
+func (c *Catalog) GetProduct(name, num string) (*Product, *Release, error) {
 	for i := range c.Products {
 		pr := &c.Products[i]
 		if pr.Name != name {
 			continue
 		}
 
-		rel, err := pr.Get(num)
+		rel, err := pr.GetRelease(num)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -103,9 +100,9 @@ func (c *Catalog) Get(name, num string) (*Product, *Release, error) {
 	return nil, nil, fmt.Errorf("product %q not found", name)
 }
 
-// Get returns a specific product release.
+// GetRelease returns a specific product release.
 // Return the default release if num is empty.
-func (pr *Product) Get(num string) (*Release, error) {
+func (pr *Product) GetRelease(num string) (*Release, error) {
 	if num == "" {
 		num = pr.Default
 	}

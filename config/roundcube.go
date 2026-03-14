@@ -19,7 +19,7 @@ type Roundcube struct {
 	Locale     string
 	Password   string
 	DesKey     string
-	DirName    string
+	Directory  string
 	Download   *assets.Download
 }
 
@@ -32,7 +32,7 @@ func (rc *Roundcube) RootDir() string {
 }
 
 func (rc *Roundcube) BaseDir() string {
-	return filepath.Join(rc.RootDir(), rc.DirName)
+	return filepath.Join(rc.RootDir(), rc.Directory)
 }
 
 func (rc *Roundcube) CertDir() string {
@@ -97,7 +97,7 @@ func (cfg *Config) DeployRoundcubeDomain(domain *email.Domain) error {
 		FQDN:       cfg.FQDN(), // for Postfix / Dovecot access
 		SysAdmin:   cfg.SysAdmin,
 		Locale:     cfg.Locale(),
-		DirName:    rcRel.Download.Directory,
+		Directory:  rcRel.Download.Directory,
 		Download:   &rcRel.Download,
 	}
 

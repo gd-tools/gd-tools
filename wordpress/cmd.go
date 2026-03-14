@@ -44,7 +44,6 @@ var Command = &cli.Command{
 		&cli.StringFlag{
 			Name:  "admin-name",
 			Usage: "name of WordPress admin",
-			Value: "WordPress Admin",
 		},
 		&cli.StringFlag{
 			Name:  "admin-email",

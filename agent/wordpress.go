@@ -13,12 +13,12 @@ import (
 )
 
 type WordPress struct {
-	Instance string
-	DirName  string
+	Instance  string
+	Directory string
 }
 
 func (wp *WordPress) BaseDir() string {
-	return assets.GetToolsDir("data", "wordpress", wp.Instance, wp.DirName)
+	return assets.GetToolsDir("data", "wordpress", wp.Instance, wp.Directory)
 }
 
 func (wp *WordPress) LogsDir() string {

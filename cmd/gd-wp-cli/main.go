@@ -29,10 +29,10 @@ func main() {
 		Usage: "Run WP-CLI commands for project '" + InstName + "'",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "dir-name",
+				Name:    "directory",
 				Usage:   "subdirectory of the WordPress instance",
 				Value:   "wordpress",
-				EnvVars: []string{"GD_WP_DIRNAME"},
+				EnvVars: []string{"GD_WP_DIRECTORY"},
 			},
 			&cli.BoolFlag{
 				Name:  "cron",
@@ -51,8 +51,8 @@ func main() {
 
 func Run(c *cli.Context) error {
 	wp := &agent.WordPress{
-		Instance: InstName,
-		DirName:  c.String("dir-name"),
+		Instance:  InstName,
+		Directory: c.String("directory"),
 	}
 
 	var resp agent.Response

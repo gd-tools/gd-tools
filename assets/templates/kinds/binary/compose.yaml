@@ -1,8 +1,0 @@
-services:
-  hello:
-    image: yourname/hello-gd-tools
-    container_name: hello
-    ports:
-      - "8080"
-    restart: always
-

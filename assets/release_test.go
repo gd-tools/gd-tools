@@ -89,7 +89,7 @@ func TestCatalogDefaultLookup(t *testing.T) {
 	}
 
 	for _, pr := range cat.Products {
-		_, rel, err := cat.Get(pr.Name, "")
+		_, rel, err := cat.GetProduct(pr.Name, "")
 		if err != nil {
 			t.Fatalf("default lookup failed for %s: %v", pr.Name, err)
 		}
@@ -108,7 +108,7 @@ func TestCatalogReleaseLookup(t *testing.T) {
 
 	for _, pr := range cat.Products {
 		for _, rel := range pr.Versions {
-			_, got, err := cat.Get(pr.Name, rel.Number)
+			_, got, err := cat.GetProduct(pr.Name, rel.Number)
 			if err != nil {
 				t.Fatalf("lookup failed for %s/%s: %v", pr.Name, rel.Number, err)
 			}
