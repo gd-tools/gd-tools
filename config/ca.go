@@ -25,12 +25,12 @@ const (
 	ServerCrtName    = "CA/server.crt"
 )
 
-// AddHostToCA ensures a local Certificate Authority (CA) and generates
+// EnsureCA ensures a local Certificate Authority (CA) and generates
 // a server certificate with Subject Alternative Names (SANs).
 //
 // The provided fqdn is added to the SAN list if not already present.
 // The list is sorted to ensure idempotent certificate configuration.
-func (cfg *Config) SetupCA() error {
+func (cfg *Config) EnsureCA() error {
 	if err := os.MkdirAll("CA", 0700); err != nil {
 		return fmt.Errorf("failed to mkdir CA: %w", err)
 	}
@@ -123,7 +123,7 @@ func (cfg *Config) SetupCA() error {
 	}{
 		HostEntries: hostEntries,
 	}
-	configTmpl, err := assets.Render("system/ca.server.config", data)
+	configTmpl, err := cfg.Render("system/ca.server.config", data)
 	if err != nil {
 		return err
 	}

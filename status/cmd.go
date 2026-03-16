@@ -19,11 +19,19 @@ var Command = &cli.Command{
 }
 
 func Run(c *cli.Context) error {
-	cfg, req, err := config.ReadConfigPlus(c)
+	cfg, err := config.ReadConfig(c)
 	if err != nil {
 		return err
-	} else if cfg != nil {
-		defer cfg.Close()
+	}
+	defer cfg.Close()
+
+	if err := cfg.EnsureCA(); err != nil {
+		return err
+	}
+
+	cfg.Conn, err = agent.ConnectToAgent(cfg.FQDN(), cfg.Timeout, cfg.Verbose)
+	if err != nil {
+		return nil, err
 	}
 
 	state := cfg.Conn.ConnectionState()
@@ -45,6 +53,7 @@ func Run(c *cli.Context) error {
 		fmt.Println("🟢 Certificate is valid")
 	}
 
+	req := cfg.NewRequest()
 	req.Hello = "Status Check"
 
 	if err := req.Send(); err != nil {

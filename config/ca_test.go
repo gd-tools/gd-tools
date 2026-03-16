@@ -14,7 +14,7 @@ func (c *testConfig) FQDN() string {
 	return c.host
 }
 
-func TestSetupCA(t *testing.T) {
+func TestEnsureCA(t *testing.T) {
 	dir := t.TempDir()
 
 	old, _ := os.Getwd()
@@ -26,7 +26,7 @@ func TestSetupCA(t *testing.T) {
 	cfg.HostName = "example"
 	cfg.DomainName = "test"
 
-	if err := cfg.SetupCA(); err != nil {
+	if err := cfg.EnsureCA(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -50,7 +50,7 @@ func TestSetupCA(t *testing.T) {
 	}
 }
 
-func TestSetupCAIdempotent(t *testing.T) {
+func TestEnsureCAIdempotent(t *testing.T) {
 	dir := t.TempDir()
 
 	old, _ := os.Getwd()
@@ -62,13 +62,13 @@ func TestSetupCAIdempotent(t *testing.T) {
 	cfg.HostName = "example"
 	cfg.DomainName = "test"
 
-	if err := cfg.SetupCA(); err != nil {
+	if err := cfg.EnsureCA(); err != nil {
 		t.Fatal(err)
 	}
 
 	info1, _ := os.Stat(CaCrtName)
 
-	if err := cfg.SetupCA(); err != nil {
+	if err := cfg.EnsureCA(); err != nil {
 		t.Fatal(err)
 	}
 

@@ -26,9 +26,9 @@ func TestRender(t *testing.T) {
 	}
 }
 
-func TestSQL(t *testing.T) {
+func TestRenderSQL(t *testing.T) {
 
-	stmts, err := SQL("test/sql.sql", nil)
+	stmts, err := RenderSQL("test/sql.sql", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,9 +42,9 @@ func TestSQL(t *testing.T) {
 	}
 }
 
-func TestLines(t *testing.T) {
+func TestRenderLines(t *testing.T) {
 
-	lines, err := Lines("test/lines.txt", "#", nil)
+	lines, err := RenderLines("test/lines.txt", "#", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -2,135 +2,92 @@ package platform
 
 import "testing"
 
-func TestLoadPlatformWithPaths(t *testing.T) {
-	paths := []Path{
-		{Name: PathRoot, Value: "/troot"},
-		{Name: PathVar, Value: "/tvar"},
-		{Name: PathTools, Value: "/tvar/gd-tools"},
-		{Name: PathEtc, Value: "/tetc"},
-		{Name: PathBin, Value: "/tbin"},
-		{Name: PathRun, Value: "/trun"},
-		{Name: PathDownloads, Value: "/tdownloads"},
-	}
-
-	pf, err := LoadPlatformWithPaths(paths)
-	if err != nil {
-		t.Fatalf("LoadPlatformWithPaths failed: %v", err)
-	}
-
-	if pf == nil {
-		t.Fatal("expected platform")
-	}
-	if len(pf.Paths) != len(paths) {
-		t.Fatalf("unexpected path count: got %d want %d", len(pf.Paths), len(paths))
-	}
-	if pf.Paths[0].Value != "/troot" {
-		t.Fatalf("unexpected first path value: %q", pf.Paths[0].Value)
-	}
-}
-
-func TestLoadPlatformWithPathsClonesInput(t *testing.T) {
-	paths := []Path{
-		{Name: PathRoot, Value: "/troot"},
-		{Name: PathVar, Value: "/tvar"},
-		{Name: PathTools, Value: "/tvar/gd-tools"},
-		{Name: PathEtc, Value: "/tetc"},
-		{Name: PathBin, Value: "/tbin"},
-		{Name: PathRun, Value: "/trun"},
-		{Name: PathDownloads, Value: "/tdownloads"},
-	}
-
-	pf, err := LoadPlatformWithPaths(paths)
-	if err != nil {
-		t.Fatalf("LoadPlatformWithPaths failed: %v", err)
-	}
-
-	paths[0].Value = "/changed"
-	if pf.Paths[0].Value != "/troot" {
-		t.Fatal("platform paths must not be affected by caller changes")
-	}
-}
-
 func TestValidateOK(t *testing.T) {
 	pf := &Platform{
-		Baselines: []Baseline{
-			{Name: "noble-8.3-2.4"},
+		baselines: []Baseline{
+			{Name: "noble-8.3-2.4", PHP: "8.3"},
+		},
+		Baseline: &Baseline{
+			Name: "noble-8.3-2.4",
+			PHP:  "8.3",
+		},
+		options: &Options{
+			rootDir: "/root",
+			varDir:  "/var",
+			etcDir:  "/etc",
+			binDir:  "/usr/local/bin",
+			runDir:  "/run",
 		},
 		Products: []Product{
-			{Name: "nextcloud", Default: "31.0.0"},
+			{},
 		},
-		Paths: DefaultPaths(),
 	}
 
 	if err := pf.Validate(); err != nil {
-		t.Fatalf("Validate failed: %v", err)
+		t.Fatalf("Validate() returned error: %v", err)
 	}
 }
 
-func TestValidateNil(t *testing.T) {
-	var pf *Platform
-
-	if err := pf.Validate(); err == nil {
-		t.Fatal("expected error for nil platform")
-	}
-}
-
-func TestValidateMissingBaselines(t *testing.T) {
+func TestValidateNoBaselines(t *testing.T) {
 	pf := &Platform{
-		Products: []Product{
-			{Name: "nextcloud", Default: "31.0.0"},
-		},
-		Paths: DefaultPaths(),
+		Baseline: &Baseline{Name: "noble-8.3-2.4"},
+		options:  &Options{},
+		Products: []Product{{}},
 	}
 
-	if err := pf.Validate(); err == nil {
+	err := pf.Validate()
+	if err == nil {
 		t.Fatal("expected error for missing baselines")
 	}
+	if got, want := err.Error(), "platform has no baselines"; got != want {
+		t.Fatalf("unexpected error: got %q want %q", got, want)
+	}
 }
 
-func TestValidateMissingProducts(t *testing.T) {
+func TestValidateNoBaselinePointer(t *testing.T) {
 	pf := &Platform{
-		Baselines: []Baseline{
-			{Name: "noble-8.3-2.4"},
-		},
-		Paths: DefaultPaths(),
+		baselines: []Baseline{{Name: "noble-8.3-2.4"}},
+		options:   &Options{},
+		Products:  []Product{{}},
 	}
 
-	if err := pf.Validate(); err == nil {
+	err := pf.Validate()
+	if err == nil {
+		t.Fatal("expected error for missing baseline pointer")
+	}
+	if got, want := err.Error(), "platform has no baseline pointer"; got != want {
+		t.Fatalf("unexpected error: got %q want %q", got, want)
+	}
+}
+
+func TestValidateNoOptions(t *testing.T) {
+	pf := &Platform{
+		baselines: []Baseline{{Name: "noble-8.3-2.4"}},
+		Baseline:  &Baseline{Name: "noble-8.3-2.4"},
+		Products:  []Product{{}},
+	}
+
+	err := pf.Validate()
+	if err == nil {
+		t.Fatal("expected error for missing options")
+	}
+	if got, want := err.Error(), "platform has no options"; got != want {
+		t.Fatalf("unexpected error: got %q want %q", got, want)
+	}
+}
+
+func TestValidateNoProducts(t *testing.T) {
+	pf := &Platform{
+		baselines: []Baseline{{Name: "noble-8.3-2.4"}},
+		Baseline:  &Baseline{Name: "noble-8.3-2.4"},
+		options:   &Options{},
+	}
+
+	err := pf.Validate()
+	if err == nil {
 		t.Fatal("expected error for missing products")
 	}
-}
-
-func TestValidateMissingPaths(t *testing.T) {
-	pf := &Platform{
-		Baselines: []Baseline{
-			{Name: "noble-8.3-2.4"},
-		},
-		Products: []Product{
-			{Name: "nextcloud", Default: "31.0.0"},
-		},
-	}
-
-	if err := pf.Validate(); err == nil {
-		t.Fatal("expected error for missing paths")
-	}
-}
-
-func TestMustPath(t *testing.T) {
-	pf, err := LoadPlatformWithPaths([]Path{
-		{Name: PathRoot, Value: "/troot"},
-		{Name: PathVar, Value: "/tvar"},
-		{Name: PathTools, Value: "/tvar/gd-tools"},
-		{Name: PathEtc, Value: "/tetc"},
-		{Name: PathBin, Value: "/tbin"},
-		{Name: PathRun, Value: "/trun"},
-		{Name: PathDownloads, Value: "/tdownloads"},
-	})
-	if err != nil {
-		t.Fatalf("LoadPlatformWithPaths failed: %v", err)
-	}
-
-	if got := pf.MustPath(PathTools); got != "/tvar/gd-tools" {
-		t.Fatalf("unexpected tools path: %q", got)
+	if got, want := err.Error(), "platform has no products"; got != want {
+		t.Fatalf("unexpected error: got %q want %q", got, want)
 	}
 }

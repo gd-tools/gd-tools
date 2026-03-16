@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gd-tools/gd-tools/assets"
+	"github.com/gd-tools/gd-tools/platform"
 )
 
 const (
@@ -20,6 +20,10 @@ type Request struct {
 	Conn    *tls.Conn `json:"-"`
 	Verbose bool      `json:"-"`
 
+	// This gives us all the paths, e.g. pf.Datadir()
+	Platform *platform.Platform `json:"platform"`
+
+	// Work to be done in this particular request
 	Hello     string   `json:"hello,omitempty"`
 	FQDN      string   `json:"fqdn,omitempty"`
 	TimeZone  string   `json:"time_zone,omitempty"`
@@ -38,14 +42,11 @@ type Request struct {
 	SQL       []string `json:"sql,omitempty"`
 	MySQLs    []*MySQL `json:"mysqls,omitempty"`
 
-	Downloads []*assets.Download `json:"downloads,omitempty"`
+	// Selected downloads, just as required
+	Downloads []*platform.Download `json:"downloads,omitempty"`
 
-	Checks   []string `json:"checks,omitempty"`
 	Services []string `json:"services,omitempty"` // services to (re)start
 	Firewall []string `json:"firewall,omitempty"` // ports or apps to open
-
-	// for RustDesk
-	RustDesk *RustDesk `json:"rust_desk,omitempty"`
 
 	// for Nextcloud
 	Nextcloud *Nextcloud `json:"nextcloud,omitempty"`
@@ -54,6 +55,9 @@ type Request struct {
 	// for MediaWiki
 	MediaWiki *MediaWiki `json:"mediawiki,omitempty"`
 	MWConf    string     `json:"mw_conf,omitempty"`
+
+	// for RustDesk
+	RustDesk *RustDesk `json:"rust_desk,omitempty"`
 
 	// for Ubuntu Pro (https://ubuntu.com/pro)
 	UbuntuPro string `json:"ubuntu_pro,omitempty"`

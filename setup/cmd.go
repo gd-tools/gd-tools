@@ -238,7 +238,7 @@ func Run(c *cli.Context) error {
 		return err
 	}
 
-	if err := cfg.SetupCA(); err != nil {
+	if err := cfg.EnsureCA(); err != nil {
 		return err
 	}
 

@@ -11,17 +11,16 @@ import (
 )
 
 const (
-	BasicsName = "basics"
-	BasicsFile = BasicsName + ".json"
+	IdentityFile = "identity.json"
 
 	DefaultTimeZone = "Europe/Berlin"
-	DefaultCompany  = "My Company"
+	DefaultCompany  = "Example GmbH"
 	DefaultDomain   = "example.com"
 	DefaultRegTTL   = 3600
 	DefaultDMARC    = "v=DMARC1; p=quarantine; pct=100; adkim=s; aspf=s"
 )
 
-type Basics struct {
+type Identity struct {
 	Company  string `json:"company"`
 	Domain   string `json:"domain"`
 	SysAdmin string `json:"sys_admin"`
@@ -33,33 +32,33 @@ type Basics struct {
 	DMARC    string `json:"dmarc"`
 }
 
-func (bsc *Basics) Locale() string {
-	return bsc.Language + "_" + bsc.Region
+func (id *Identity) Locale() string {
+	return id.Language + "_" + id.Region
 }
 
-func (bsc *Basics) AdminMail() string {
-	if bsc.SysAdmin != "" {
-		return bsc.SysAdmin
+func (id *Identity) AdminMail() string {
+	if id.SysAdmin != "" {
+		return id.SysAdmin
 	}
-	return "admin@" + bsc.Domain
+	return "admin@" + id.Domain
 }
 
-func (bsc *Basics) SupportURL() string {
-	if bsc.HelpURL != "" {
-		return bsc.HelpURL
+func (id *Identity) SupportURL() string {
+	if id.HelpURL != "" {
+		return id.HelpURL
 	}
-	return "https://support." + bsc.Domain + "/"
+	return "https://support." + id.Domain + "/"
 }
 
-func (bsc *Basics) DMARCDomain() string {
-	return "_dmarc." + bsc.Domain
+func (id *Identity) DMARCDomain() string {
+	return "_dmarc." + id.Domain
 }
 
-func EnsureBasics() (*Basics, error) {
-	content, err := os.ReadFile(BasicsFile)
+func EnsureIdentity() (*Identity, error) {
+	content, err := os.ReadFile(IdentityFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			bsc := Basics{
+			id := Identity{
 				Company:  DefaultCompany,
 				Domain:   DefaultDomain,
 				SysAdmin: GetSysAdmin(),
@@ -70,66 +69,66 @@ func EnsureBasics() (*Basics, error) {
 				RegTTL:   DefaultRegTTL,
 				DMARC:    DefaultDMARC,
 			}
-			return &bsc, nil
+			return &id, nil
 		}
-		return nil, fmt.Errorf("failed to read %s: %w", BasicsFile, err)
+		return nil, fmt.Errorf("failed to read %s: %w", IdentityFile, err)
 	}
 
-	var bsc Basics
-	if err := json.Unmarshal(content, &bsc); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal %s: %w", BasicsFile, err)
+	var id Identity
+	if err := json.Unmarshal(content, &id); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal %s: %w", IdentityFile, err)
 	}
 
-	if bsc.Domain == DefaultDomain {
-		return nil, fmt.Errorf("%s has default values - please update", BasicsFile)
+	if id.Domain == DefaultDomain {
+		return nil, fmt.Errorf("%s has default values - please update", IdentityFile)
 	}
 
-	if bsc.DMARC == "" {
-		bsc.DMARC = DefaultDMARC
+	if id.DMARC == "" {
+		id.DMARC = DefaultDMARC
 	}
 
-	return &bsc, nil
+	return &id, nil
 }
 
-func GetBasics() (*Basics, error) {
-	path := filepath.Join("..", BasicsFile)
+func FetchIdentity() (*Identity, error) {
+	path := filepath.Join("..", IdentityFile)
 
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("missing %s - are we in the correct dir?", path)
 	}
 
-	var bsc Basics
-	if err := json.Unmarshal(content, &bsc); err != nil {
+	var id Identity
+	if err := json.Unmarshal(content, &id); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal %s: %w", path, err)
 	}
 
-	if bsc.DMARC == "" {
-		bsc.DMARC = DefaultDMARC
+	if id.DMARC == "" {
+		id.DMARC = DefaultDMARC
 	}
 
-	return &bsc, nil
+	return &id, nil
 }
 
-func (bsc *Basics) Save() error {
-	content, err := json.MarshalIndent(bsc, "", "  ")
+func (id *Identity) Save() error {
+	content, err := json.MarshalIndent(id, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", BasicsFile, err)
+		return fmt.Errorf("failed to marshal %s: %w", IdentityFile, err)
 	}
 
-	existing, err := os.ReadFile(BasicsFile)
+	existing, err := os.ReadFile(IdentityFile)
 	if err == nil && bytes.Equal(existing, content) {
 		return nil
 	}
 
-	tmp := BasicsFile + ".tmp"
+	tmp := IdentityFile + ".tmp"
 
 	if err := os.WriteFile(tmp, content, 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", tmp, err)
 	}
 
-	if err := os.Rename(tmp, BasicsFile); err != nil {
-		return fmt.Errorf("failed to replace %s: %w", BasicsFile, err)
+	if err := os.Rename(tmp, IdentityFile); err != nil {
+		return fmt.Errorf("failed to replace %s: %w", IdentityFile, err)
 	}
 
 	return nil

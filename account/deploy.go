@@ -28,14 +28,14 @@ var DeployCommand = &cli.Command{
 	},
 	ArgsUsage: "[<domain> ...]",
 	BashComplete: func(c *cli.Context) {
-		dl, _, err := email.GetDomains(nil)
+		domList, _, err := email.GetDomains(nil)
 		if err != nil {
 			return
 		}
-		for _, d := range dl.Domains {
-			fmt.Fprintln(c.App.Writer, d.Name)
-			for _, a := range d.Aliases {
-				fmt.Fprintln(c.App.Writer, a)
+		for _, dom := range domList.Domains {
+			fmt.Fprintln(c.App.Writer, dom.Name)
+			for _, alias := range dom.Aliases {
+				fmt.Fprintln(c.App.Writer, alias)
 			}
 		}
 	},
@@ -43,11 +43,19 @@ var DeployCommand = &cli.Command{
 }
 
 func DeployRun(c *cli.Context) error {
-	cfg, _, err := config.ReadConfigPlus(c)
+	cfg, err := config.ReadConfig(c)
 	if err != nil {
 		return err
-	} else if cfg != nil {
-		defer cfg.Close()
+	}
+	defer cfg.Close()
+
+	if err := cfg.EnsureCA(); err != nil {
+		return err
+	}
+
+	cfg.Conn, err = agent.ConnectToAgent(cfg.FQDN(), cfg.Timeout, cfg.Verbose)
+	if err != nil {
+		return nil, err
 	}
 
 	sel := make(map[string]bool)

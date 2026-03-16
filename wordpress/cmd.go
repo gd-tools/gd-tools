@@ -76,20 +76,20 @@ func Run(c *cli.Context) error {
 	aliases := c.StringSlice("alias")
 	sort.Strings(aliases)
 
-pf, err := platform.LoadPlatform()
-if err != nil {
-	return err
-}
+	pf, err := platform.LoadPlatform()
+	if err != nil {
+		return err
+	}
 
-wpProd, wpRel, err := pf.GetProduct("wordpress", "")
-if err != nil {
-	return err
-}
+	wpProd, wpRel, err := pf.GetProduct("wordpress", "")
+	if err != nil {
+		return err
+	}
 
-cliProd, _, err := pf.GetProduct("wp-cli", "")
-if err != nil {
-	return err
-}
+	cliProd, _, err := pf.GetProduct("wp-cli", "")
+	if err != nil {
+		return err
+	}
 	wp := config.WordPress{
 		HostName:     host,
 		DomainName:   domain,

@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/platform"
 	"github.com/gd-tools/gd-tools/config"
+	"github.com/gd-tools/gd-tools/platform"
 	"github.com/urfave/cli/v2"
 )
 
@@ -38,7 +38,7 @@ func Run(c *cli.Context) error {
 		return err
 	}
 
-	if err := cfg.SetupCA(); err != nil {
+	if err := cfg.EnsureCA(); err != nil {
 		return err
 	}
 

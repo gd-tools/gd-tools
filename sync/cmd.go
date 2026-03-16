@@ -20,28 +20,39 @@ var Command = &cli.Command{
 		config.FlagVerbose,
 		&cli.BoolFlag{
 			Name:  "ssh-key",
-			Usage: "also copy the ssh key pair",
+			Usage: "also copy the ssh key pair of the admin",
 		},
 	},
 	Action: Run,
 }
 
 func Run(c *cli.Context) error {
-	cfg, req, err := config.ReadConfigPlus(c)
+	cfg, err := config.ReadConfig(c)
 	if err != nil {
+		return err
+	}
+	defer cfg.Close()
+
+	if err := cfg.EnsureCA(); err != nil {
 		return err
 	}
 
 	cfg.PushCerts()
 
 	if c.Bool("ssh-key") {
+		cfg.Conn, err := agent.ConnectToAgent(cfg.FQDN(), cfg.Timeout, cfg.Verbose)
+		if err != nil {
+			return nil, err
+		}
+		req := cfg.NewRequest()
+
 		privContent, pubContent, err := utils.GetRSAKeyPair(cfg.FQDN())
 		if err != nil {
 			return err
 		}
 		privFile := agent.File{
 			Task:    "write",
-			Path:    assets.GetRootDir(".ssh", "id_rsa"),
+			Path:    cfg.RootDir(".ssh", "id_rsa"),
 			Content: privContent,
 			Mode:    "0600",
 			User:    "root",
@@ -50,7 +61,7 @@ func Run(c *cli.Context) error {
 		req.AddFile(&privFile)
 		pubFile := agent.File{
 			Task:    "write",
-			Path:    assets.GetRootDir(".ssh", "id_rsa.pub"),
+			Path:    cfg.RootDir(".ssh", "id_rsa.pub"),
 			Content: pubContent,
 			Mode:    "0600",
 			User:    "root",

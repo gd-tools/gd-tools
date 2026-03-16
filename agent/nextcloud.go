@@ -45,8 +45,8 @@ func (nc *Nextcloud) FQDN() string {
 	return nc.HostName + "." + nc.DomainName
 }
 
-func (nc *Nextcloud) RootDir() string {
-	return assets.GetToolsDir("data", "nextcloud", nc.Name)
+func (nc *Nextcloud) AppRootDir() string {
+	return cfg.DataDir("nextcloud", nc.Name)
 }
 
 func (nc *Nextcloud) SocketPath() string {
@@ -55,11 +55,11 @@ func (nc *Nextcloud) SocketPath() string {
 }
 
 func (nc *Nextcloud) ConfigPath() string {
-	return filepath.Join(nc.RootDir(), "config.json")
+	return filepath.Join(nc.AppRootDir(), "config.json")
 }
 
 func (nc *Nextcloud) BaseDir(paths ...string) string {
-	baseDir := filepath.Join(nc.RootDir(), "nextcloud")
+	baseDir := filepath.Join(nc.AppRootDir(), "nextcloud")
 	if len(paths) == 0 {
 		return baseDir
 	}
@@ -75,7 +75,7 @@ func (nc *Nextcloud) SlashSubdir() string {
 }
 
 func (nc *Nextcloud) DataDir(paths ...string) string {
-	dataDir := filepath.Join(nc.RootDir(), "data")
+	dataDir := filepath.Join(nc.AppRootDir(), "data")
 	if len(paths) == 0 {
 		return dataDir
 	}

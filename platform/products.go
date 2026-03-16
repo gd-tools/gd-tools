@@ -7,7 +7,7 @@ import (
 	"github.com/gd-tools/gd-tools/utils"
 )
 
-const ProductsPath = "system/products.json"
+const ProductsTemplate = "system/products.json"
 
 // Release describes one specific release entry for a product.
 type Release struct {
@@ -27,20 +27,18 @@ type Product struct {
 	Versions  []Release `json:"versions"`
 }
 
-// DefaultProducts returns the products embedded in the gdt binary.
-func DefaultProducts() []Product {
-	data, err := Render(ProductsPath, nil)
+// LoadProducts loads the products embedded in the gdt binary.
+func (pf *Platform) LoadProducts() error {
+	data, err := Render(ProductsTemplate, nil)
 	if err != nil {
-		return nil // error will be reported later
+		return fmt.Errorf("failed to render %s: %w", ProductsTemplate, err)
 	}
 
-	var products []Product
-	err = json.Unmarshal(data, &products)
-	if err != nil {
-		return nil // error will be reported later
+	if err := json.Unmarshal(data, &pf.Products); err != nil {
+		return fmt.Errorf("failed to unmarshal %s: %w", ProductsTemplate, err)
 	}
 
-	return products
+	return nil
 }
 
 // FindProduct returns one product by name.
@@ -82,7 +80,6 @@ func (pr *Product) GetRelease(num string) (*Release, error) {
 			continue
 		}
 
-		// Copy release so we do not mutate the embedded catalog.
 		r := rel
 
 		if r.Download.Directory == "" {
@@ -106,11 +103,6 @@ func (pr *Product) GetRelease(num string) (*Release, error) {
 // DefaultRelease returns the default release of the product.
 func (pr *Product) DefaultRelease() (*Release, error) {
 	return pr.GetRelease(pr.Default)
-}
-
-// IsDefaultRelease reports whether num is the default release.
-func (pr *Product) IsDefaultRelease(num string) bool {
-	return num == pr.Default
 }
 
 // ReleaseCandidate describes one completion candidate for shell completion.
@@ -158,17 +150,18 @@ func (pr *Product) Info() []string {
 	lb.Add("Known releases:")
 
 	for _, rel := range pr.Versions {
+
 		line := rel.Number
+
 		if rel.Number == pr.Default {
 			line += " (default)"
 		}
 
-		lb.Addf("  - %s", line)
-		lb.Addf("    Version:    %s", rel.Number)
-
 		if rel.Series != "" {
-			lb.Addf("    Series:     %s", rel.Series)
+			line += " [" + rel.Series + "]"
 		}
+
+		lb.Addf("  - %s", line)
 
 		lb.Addf("    File:       %s", rel.Download.Filename)
 

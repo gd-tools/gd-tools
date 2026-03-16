@@ -21,13 +21,26 @@ var Command = &cli.Command{
 }
 
 func Run(c *cli.Context) error {
-	cfg, req, err := config.ReadConfigPlus(c)
+	cfg, err := config.ReadConfig(c)
 	if err != nil {
 		return err
-	} else if cfg != nil {
-		defer cfg.Close()
+	}
+	defer cfg.Close()
+
+	if err := cfg.EnsureCA(); err != nil {
+		return err
 	}
 
+	if c.IsSet("timeout") {
+		cfg.Timeout = c.Int("timeout")
+	}
+
+	cfg.Conn, err = agent.ConnectToAgent(cfg.FQDN(), cfg.Timeout, cfg.Verbose)
+	if err != nil {
+		return nil, err
+	}
+
+	req := cfg.NewRequest()
 	req.Hello = "Hi, there."
 
 	if err := req.Send(); err != nil {

@@ -23,8 +23,8 @@ var Command = &cli.Command{
 	Flags: []cli.Flag{
 		config.FlagVerbose,
 		&cli.BoolFlag{
-			Name:  "basics",
-			Usage: "update values from $(GD_TOOLS_BASE)/basics.json",
+			Name:  "identity",
+			Usage: "update values from $(GD_TOOLS_BASE)/identity.json",
 		},
 		setup.FlagDMARC,
 		setup.FlagCompany,
@@ -44,17 +44,17 @@ func Run(c *cli.Context) error {
 		return err
 	}
 
-	// Update from basics.json if requested (except company/sysadmin/help-url)
-	if c.Bool("basics") {
-		basics, err := utils.GetBasics()
+	// Update from identity.json if requested (except company/sysadmin/help-url)
+	if c.Bool("identity") {
+		id, err := utils.FetchdIdentity()
 		if err != nil {
 			return err
 		}
-		cfg.TimeZone = basics.TimeZone
-		cfg.Language = basics.Language
-		cfg.Region = basics.Region
-		cfg.RegTTL = basics.RegTTL
-		cfg.DMARC = basics.DMARC
+		cfg.TimeZone = id.TimeZone
+		cfg.Language = id.Language
+		cfg.Region = id.Region
+		cfg.RegTTL = id.RegTTL
+		cfg.DMARC = id.DMARC
 	}
 
 	// There must always be a DMARC value

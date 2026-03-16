@@ -100,16 +100,19 @@ var Command = &cli.Command{
 }
 
 func Run(c *cli.Context) error {
-	cfg, _, err := config.ReadConfigPlus(c)
+	cfg, err := config.ReadConfig(c)
 	if err != nil {
 		return err
 	}
-	if cfg != nil {
-		defer cfg.Close()
+	defer cfg.Close()
+
+	if err := cfg.EnsureCA(); err != nil {
+		return err
 	}
 
-	if err := cfg.SetupCA(); err != nil {
-		return err
+	cfg.Conn, err = agent.ConnectToAgent(cfg.FQDN(), cfg.Timeout, cfg.Verbose)
+	if err != nil {
+		return nil, err
 	}
 
 	ncList, err := agent.LoadNextcloudList(nil)

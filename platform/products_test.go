@@ -2,137 +2,146 @@ package platform
 
 import "testing"
 
-func TestFindProduct(t *testing.T) {
-	pf := &Platform{
-		Baselines: []Baseline{{Name: "base"}},
-		Products: []Product{
-			{Name: "nextcloud", Default: "31.0.0"},
+func testProduct() *Product {
+	return &Product{
+		Name:      "nextcloud",
+		Default:   "28.0.1",
+		Directory: "nextcloud",
+		Binary:    "occ",
+		Marker:    "config/config.php",
+		Versions: []Release{
+			{
+				Number: "28.0.1",
+				Series: "stable",
+				Download: Download{
+					Filename: "nextcloud-28.0.1.zip",
+				},
+			},
+			{
+				Number: "27.1.5",
+				Series: "oldstable",
+				Download: Download{
+					Filename: "nextcloud-27.1.5.zip",
+				},
+			},
 		},
-		Paths: DefaultPaths(),
+	}
+}
+
+func TestFindProduct(t *testing.T) {
+
+	pf := &Platform{
+		Products: []Product{
+			{Name: "nextcloud"},
+		},
 	}
 
 	pr, err := pf.FindProduct("nextcloud")
 	if err != nil {
-		t.Fatalf("FindProduct failed: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
+
 	if pr.Name != "nextcloud" {
-		t.Fatalf("unexpected product: %q", pr.Name)
+		t.Fatalf("unexpected product: %s", pr.Name)
 	}
 }
 
-func TestGetReleaseDefaultInheritance(t *testing.T) {
-	pr := &Product{
-		Name:      "nextcloud",
-		Default:   "31.0.0",
-		Directory: "nextcloud",
-		Binary:    "occ",
-		Marker:    "README",
-		Versions: []Release{
-			{
-				Number: "31.0.0",
-				Download: Download{
-					Filename: "nextcloud-31.0.0.tar.bz2",
-				},
-			},
-		},
+func TestFindProductNotFound(t *testing.T) {
+
+	pf := &Platform{}
+
+	_, err := pf.FindProduct("missing")
+	if err == nil {
+		t.Fatal("expected error")
 	}
+}
+
+func TestGetReleaseDefault(t *testing.T) {
+
+	pr := testProduct()
 
 	rel, err := pr.GetRelease("")
 	if err != nil {
-		t.Fatalf("GetRelease failed: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if rel.Number != "31.0.0" {
-		t.Fatalf("unexpected release: %q", rel.Number)
-	}
-	if rel.Download.Directory != "nextcloud" {
-		t.Fatalf("unexpected directory: %q", rel.Download.Directory)
-	}
-	if rel.Download.Binary != "occ" {
-		t.Fatalf("unexpected binary: %q", rel.Download.Binary)
-	}
-	if rel.Download.Marker != "README" {
-		t.Fatalf("unexpected marker: %q", rel.Download.Marker)
+	if rel.Number != "28.0.1" {
+		t.Fatalf("unexpected release: %s", rel.Number)
 	}
 }
 
-func TestGetProduct(t *testing.T) {
-	pf := &Platform{
-		Baselines: []Baseline{{Name: "base"}},
-		Products: []Product{
-			{
-				Name:    "nextcloud",
-				Default: "31.0.0",
-				Versions: []Release{
-					{Number: "31.0.0", Download: Download{Filename: "a.tar.bz2"}},
-				},
-			},
-		},
-		Paths: DefaultPaths(),
+func TestGetReleaseExplicit(t *testing.T) {
+
+	pr := testProduct()
+
+	rel, err := pr.GetRelease("27.1.5")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	pr, rel, err := pf.GetProduct("nextcloud", "")
+	if rel.Number != "27.1.5" {
+		t.Fatalf("unexpected release: %s", rel.Number)
+	}
+}
+
+func TestGetReleaseNotFound(t *testing.T) {
+
+	pr := testProduct()
+
+	_, err := pr.GetRelease("99.0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestGetReleaseInheritsDefaults(t *testing.T) {
+
+	pr := testProduct()
+
+	rel, err := pr.GetRelease("")
 	if err != nil {
-		t.Fatalf("GetProduct failed: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if pr.Name != "nextcloud" {
-		t.Fatalf("unexpected product: %q", pr.Name)
+
+	if rel.Download.Directory != "nextcloud" {
+		t.Fatalf("unexpected directory: %s", rel.Download.Directory)
 	}
-	if rel.Number != "31.0.0" {
-		t.Fatalf("unexpected release: %q", rel.Number)
+
+	if rel.Download.Binary != "occ" {
+		t.Fatalf("unexpected binary: %s", rel.Download.Binary)
+	}
+
+	if rel.Download.Marker != "config/config.php" {
+		t.Fatalf("unexpected marker: %s", rel.Download.Marker)
 	}
 }
 
 func TestReleaseCandidates(t *testing.T) {
-	pr := &Product{
-		Name:    "nextcloud",
-		Default: "31.0.0",
-		Versions: []Release{
-			{Number: "30.0.0"},
-			{Number: "31.0.0", Series: "31"},
-		},
+
+	pr := testProduct()
+
+	candidates := pr.ReleaseCandidates()
+
+	if len(candidates) != 2 {
+		t.Fatalf("unexpected candidate count: %d", len(candidates))
 	}
 
-	got := pr.ReleaseCandidates()
-	if len(got) != 2 {
-		t.Fatalf("unexpected candidate count: %d", len(got))
-	}
-	if got[1].Value != "31.0.0" {
-		t.Fatalf("unexpected value: %q", got[1].Value)
-	}
-	if !got[1].Default {
-		t.Fatal("expected default candidate")
-	}
-	if got[1].Description == "" {
-		t.Fatal("expected description")
+	if !candidates[0].Default {
+		t.Fatal("expected first candidate to be default")
 	}
 }
 
-func TestDefaultRelease(t *testing.T) {
-	pr := &Product{
-		Name:    "nextcloud",
-		Default: "31.0.0",
-		Versions: []Release{
-			{Number: "31.0.0"},
-		},
+func TestProductInfo(t *testing.T) {
+
+	pr := testProduct()
+
+	lines := pr.Info()
+
+	if len(lines) == 0 {
+		t.Fatal("expected info output")
 	}
 
-	rel, err := pr.DefaultRelease()
-	if err != nil {
-		t.Fatalf("DefaultRelease failed: %v", err)
-	}
-	if rel.Number != "31.0.0" {
-		t.Fatalf("unexpected release: %q", rel.Number)
-	}
-}
-
-func TestIsDefaultRelease(t *testing.T) {
-	pr := &Product{Default: "31.0.0"}
-
-	if !pr.IsDefaultRelease("31.0.0") {
-		t.Fatal("expected default release")
-	}
-	if pr.IsDefaultRelease("30.0.0") {
-		t.Fatal("did not expect default release")
+	if lines[0] != "Product:    nextcloud" {
+		t.Fatalf("unexpected first line: %s", lines[0])
 	}
 }

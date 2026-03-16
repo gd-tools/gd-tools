@@ -1,66 +1,84 @@
 package platform
 
-import "fmt"
+import (
+	"fmt"
+)
 
+const (
+	DefaultBaseline = "noble-8.3-2.4"
+)
+
+// Platform describes the runtime environment of gd-tools.
 type Platform struct {
-	// Baselines are embedded in the gdt binary and describe
-	// supported runtime combinations such as Ubuntu, PHP, and Dovecot.
-	Baselines []Baseline `json:"baselines"`
+	// baselines describe the available platforms.
+	// This contains Ubuntu, PHP and Dovecot Versions.
+	baselines []Baseline
 
-	// Products are embedded in the gdt binary and describe
-	// supported applications managed by gdt.
+	// Baseline points to the version currently in use.
+	Baseline *Baseline `json:"baseline"`
+
+	// options describe paths and functions that can be faked for test.
+	options *Options
+
+	// Products describe the downloadable archives and binaries.
 	Products []Product `json:"products"`
-
-	// Paths describe the concrete runtime directory tree.
-	// They may be overridden in tests.
-	Paths []Path `json:"paths"`
 }
 
-// LoadPlatform returns the default runtime platform.
-func LoadPlatform() (*Platform, error) {
-	pf := &Platform{
-		Baselines: DefaultBaselines(),
-		Products:  DefaultProducts(),
-		Paths:     DefaultPaths(),
+// LoadPlatform loads the platform definition.
+func LoadPlatform(name string, opts *Options) (*Platform, error) {
+	var pf Platform
+
+	if opts != nil {
+		pf.options = opts
+	} else {
+		pf.options = defaultOptions()
+	}
+
+	if err := pf.LoadBaselines(name); err != nil {
+		return nil, err
+	}
+
+	if err := pf.LoadProducts(); err != nil {
+		return nil, err
 	}
 
 	if err := pf.Validate(); err != nil {
 		return nil, err
 	}
 
-	return pf, nil
+	return &pf, nil
 }
 
-// LoadPlatformWithPaths returns the default runtime platform
-// with overridden runtime paths. This is primarily useful for tests.
-func LoadPlatformWithPaths(paths []Path) (*Platform, error) {
-	pf, err := LoadPlatform()
-	if err != nil {
-		return nil, err
-	}
-
-	pf.Paths = ClonePaths(paths)
-
-	if err := pf.Validate(); err != nil {
-		return nil, err
-	}
-
-	return pf, nil
-}
-
-// Validate checks the platform for required runtime information.
 func (pf *Platform) Validate() error {
-	if pf == nil {
-		return fmt.Errorf("platform is nil")
+	if len(pf.baselines) == 0 {
+		return fmt.Errorf("platform has no baselines")
 	}
-	if len(pf.Baselines) == 0 {
-		return fmt.Errorf("missing baselines")
+	if pf.Baseline == nil {
+		return fmt.Errorf("platform has no baseline pointer")
 	}
+
 	if len(pf.Products) == 0 {
-		return fmt.Errorf("missing products")
+		return fmt.Errorf("platform has no products")
 	}
-	if len(pf.Paths) == 0 {
-		return fmt.Errorf("missing paths")
+
+	if pf.options == nil {
+		return fmt.Errorf("platform has no options")
 	}
+	if pf.options.rootDir == "" {
+		return fmt.Errorf("platform has no rootDir")
+	}
+	if pf.options.varDir == "" {
+		return fmt.Errorf("platform has no varDir")
+	}
+	if pf.options.etcDir == "" {
+		return fmt.Errorf("platform has no etcDir")
+	}
+	if pf.options.binDir == "" {
+		return fmt.Errorf("platform has no binDir")
+	}
+	if pf.options.runDir == "" {
+		return fmt.Errorf("platform has no runDir")
+	}
+
 	return nil
 }

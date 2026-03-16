@@ -36,7 +36,7 @@ func Render(name string, data interface{}) ([]byte, error) {
 	return result.Bytes(), nil
 }
 
-func SQL(name string, data interface{}) ([]string, error) {
+func RenderSQL(name string, data interface{}) ([]string, error) {
 	content, err := Render(name, data)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func normalizeSQL(sql string) string {
 	return strings.Join(words, " ")
 }
 
-func Lines(name, comment string, data interface{}) ([]string, error) {
+func RenderLines(name, comment string, data interface{}) ([]string, error) {
 	content, err := Render(name, data)
 	if err != nil {
 		return nil, err

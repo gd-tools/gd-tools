@@ -10,65 +10,65 @@ import (
 	"sort"
 
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/assets"
+	"github.com/gd-tools/gd-tools/platform"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
 
 const (
-	ConfigName    = "config"
-	ConfigFile    = ConfigName + ".json"
-	ConfigTimeout = 10
+	ConfigFile     = "config.json"
+	DefaultTimeout = 10
 
 	RunPrefix   = "[run]"
 	DebugPrefix = "[dbg] ##########"
 )
 
 type Config struct {
-	BaselineName string `json:"baseline"` // runtime generation: ubuntu-php-dovecot
+	// Runtime environment: ubuntu + php + dovecot
+	Platform *platform.Platform `json:"-"`
 
-	Catalog  *assets.Catalog  `json:"-"`
-	Baseline *assets.Baseline `json:"-"`
+	// Concrete baseline for this server
+	BaselineName string             `json:"baseline"`
+	Baseline     *platform.Baseline `json:"-"`
 
-	Verbose  bool      `json:"-"`
-	Force    bool      `json:"-"`
-	Delete   bool      `json:"-"`
-	SkipDNS  bool      `json:"-"`
-	SkipMX   bool      `json:"-"`
-	Port     string    `json:"-"`
-	Conn     *tls.Conn `json:"-"`
-	Mailer   *Mailer   `json:"-"`
-	DKIMs    []string  `json:"-"`
-	Postfix  *Postfix  `json:"-"`
-	Password string    `json:"-"`
-	RootDir  string    `json:"-"`
-	BaseDir  string    `json:"-"`
-	LogsDir  string    `json:"-"`
-	CertDir  string    `json:"-"`
+	// Flags that everyone uses
+	Verbose bool `json:"-"`
+	Force   bool `json:"-"`
+	Delete  bool `json:"-"`
+	SkipDNS bool `json:"-"`
+	SkipMX  bool `json:"-"`
 
-	Company  string `json:"company"`   // company name, used e.g. for Webmail
-	Domain   string `json:"domain"`    // company domain, used for building URLs
-	SysAdmin string `json:"sys_admin"` // try to read from ~/.gitconfig
-	TimeZone string `json:"time_zone"` // e.g. Europe/Berlin
-	Language string `json:"language"`  // e.g. de
-	Region   string `json:"region"`    // e.g. DE
-	RegTTL   int    `json:"reg_ttl"`   // DNS TTL for static names, default is 3600
-	HelpURL  string `json:"help_url"`  // Support URL
+	// Connection to the production server
+	Port    string    `json:"-"`
+	Conn    *tls.Conn `json:"-"`
+	Timeout int       `json:"-"`
 
+	// Useful application access helpers
+	Mailer   *Mailer  `json:"-"`
+	DKIMs    []string `json:"-"`
+	Postfix  *Postfix `json:"-"`
+	Password string   `json:"-"`
+	RootDir  string   `json:"-"`
+	BaseDir  string   `json:"-"`
+	LogsDir  string   `json:"-"`
+	CertDir  string   `json:"-"`
+
+	// The user facing environment
+	utils.Basics
+
+	// Some server parameters
 	HostName   string         `json:"host_name"`   // host part of FQDN
 	DomainName string         `json:"domain_name"` // domain part of FQDN
 	IPv4Addr   string         `json:"ipv4_addr"`   // must be set manually
 	IPv6Addr   string         `json:"ipv6_addr"`   // must be set manually
-	DMARC      string         `json:"dmarc"`       // DMARC (p=quarantine; pct=100; adkim=s; aspf=s)
 	SwapSize   string         `json:"swap_size"`   // e.g. 500M or 2G, or 0
-	Timeout    int            `json:"timeout"`     // connection timeout, default 10 seconds
 	Mounts     []*agent.Mount `json:"mounts"`      // mounted filesystem (which can grow)
 	Firewall   []string       `json:"firewall"`    // ufw ports to open, e.g. 22/tcp
 
 	// List of installed host names (to avoid name collisions)
 	UsedFQDNs []string `json:"used_fqdns"`
 
-	// System software versions
+	// System software versions (for lack of a better place)
 	Roundcube string `json:"roundcube"`
 
 	// External credentials
@@ -140,39 +140,7 @@ func (cfg *Config) RsyncFlags() string {
 	return "-avzq"
 }
 
-func ReadConfigPlus(c *cli.Context) (*Config, *agent.Request, error) {
-	cfg, err := ReadConfig(c)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	timeout := cfg.Timeout
-	tmpTime := 0
-	if c != nil {
-		tmpTime = c.Int("timeout")
-	}
-	if tmpTime != 0 && tmpTime != timeout {
-		timeout = tmpTime
-	}
-
-	cfg.Conn, err = agent.ConnectToAgent(cfg.FQDN(), timeout, cfg.Verbose)
-	if err != nil {
-		return cfg, nil, err
-	}
-
-	req := cfg.NewRequest()
-
-	return cfg, req, nil
-}
-
-func (cfg *Config) Close() {
-	if cfg != nil && cfg.Conn != nil {
-		cfg.Conn.Close()
-		cfg.Conn = nil
-	}
-}
-
-func ReadConfig(c *cli.Context) (*Config, error) {
+func ReadConfig(c *cli.Context, pf *platform.Platform) (*Config, error) {
 	content, err := os.ReadFile(ConfigFile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -186,6 +154,21 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal %s: %w", ConfigFile, err)
 	}
 
+	// Load the server platform (necessary for recovery: never use "latest")
+	if pf == nil {
+		pf, err = platform.LoadPlatform()
+		if err != nil {
+			return nil, err
+		}
+	}
+	cfg.Platform = pf
+
+	// The baseline for this particular server
+	cfg.Baseline, err = pf.GetBaseline(cfg.BaselineName)
+	if err != nil {
+		return nil, err
+	}
+
 	if c != nil {
 		cfg.Verbose = c.Bool("verbose")
 		cfg.Force = c.Bool("force")
@@ -196,16 +179,6 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 		agent.SetAgentPort(cfg.Port)
 	}
 
-	cfg.Catalog, err = assets.LoadCatalog()
-	if err != nil {
-		return nil, err
-	}
-
-	cfg.Baseline, err = cfg.Catalog.GetBaseline(cfg.BaselineName)
-	if err != nil {
-		return nil, err
-	}
-
 	if cfg.HostName == "" {
 		return nil, fmt.Errorf("missing HostName in config.json")
 	}
@@ -213,38 +186,40 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 		return nil, fmt.Errorf("missing DomainName in config.json")
 	}
 	if cfg.Timeout == 0 {
-		cfg.Timeout = ConfigTimeout
+		cfg.Timeout = DefaultTimeout
 	}
 
-	basics, err := utils.GetBasics()
+	// Ensure identity values - they are used in various contexts
+	id, err := utils.FetchIdentity()
 	if err != nil {
 		return nil, err
 	}
 	if cfg.Company == "" {
-		cfg.Company = basics.Company
+		cfg.Company = id.Company
 	}
 	if cfg.Domain == "" {
-		cfg.Domain = basics.Domain
+		cfg.Domain = id.Domain
 	}
 	if cfg.SysAdmin == "" {
-		cfg.SysAdmin = basics.SysAdmin
+		cfg.SysAdmin = id.SysAdmin
 	}
 	if cfg.TimeZone == "" {
-		cfg.TimeZone = basics.TimeZone
+		cfg.TimeZone = id.TimeZone
 	}
 	if cfg.Language == "" {
-		cfg.Language = basics.Language
+		cfg.Language = id.Language
 	}
 	if cfg.Region == "" {
-		cfg.Region = basics.Region
+		cfg.Region = id.Region
 	}
 	if cfg.RegTTL == 0 {
-		cfg.RegTTL = basics.RegTTL
+		cfg.RegTTL = id.RegTTL
 	}
 	if cfg.DMARC == "" {
-		cfg.DMARC = basics.DMARC
+		cfg.DMARC = id.DMARC
 	}
 
+	// Ensure working environment
 	if err := os.MkdirAll(ACME_Cert_Dir, 0755); err != nil {
 		return nil, err
 	}
@@ -300,11 +275,19 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 	return &cfg, nil
 }
 
+func (cfg *Config) Close() {
+	if cfg != nil && cfg.Conn != nil {
+		cfg.Conn.Close()
+		cfg.Conn = nil
+	}
+}
+
 func (cfg *Config) NewRequest() *agent.Request {
 	return &agent.Request{
 		Version:  agent.ProtocolVersion,
 		Conn:     cfg.Conn,
 		Verbose:  cfg.Verbose,
+		Platform: cfg.Platform,
 		Language: cfg.Language,
 		Region:   cfg.Region,
 	}

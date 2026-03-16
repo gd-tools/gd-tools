@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-// Download describes a specific loadable asset, e.g. a zip archive or binary.
+// Download describes a downloadable asset, e.g. a zip archive or binary.
 type Download struct {
 	DownloadURL string `json:"download_url"`
 	Filename    string `json:"filename"`
@@ -25,7 +25,7 @@ type Download struct {
 
 // LocalPath returns the local cached download path.
 func (dl *Download) LocalPath(pf *Platform) string {
-	return pf.DownloadsDir(dl.Filename)
+	return pf.DownloadsPath(dl.Filename)
 }
 
 // TargetPath returns the installation target path for the binary.
@@ -34,7 +34,7 @@ func (dl *Download) TargetPath(pf *Platform) string {
 	if dl.Binary == "" {
 		return ""
 	}
-	return pf.BinDir(dl.Binary)
+	return pf.BinPath(dl.Binary)
 }
 
 // DirectoryPath returns the base directory for this download below root.
@@ -73,6 +73,7 @@ func (dl *Download) MarkerExists(root string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	}
+
 	return false, err
 }
 
@@ -87,6 +88,7 @@ func (dl *Download) ExistsLocal(pf *Platform) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	}
+
 	return false, err
 }
 

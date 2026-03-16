@@ -6,153 +6,392 @@ import (
 	"testing"
 )
 
-func testPlatform(t *testing.T) *Platform {
-	t.Helper()
-
-	pf, err := LoadPlatformWithPaths([]Path{
-		{Name: PathRoot, Value: filepath.Join(t.TempDir(), "root")},
-		{Name: PathVar, Value: filepath.Join(t.TempDir(), "var")},
-		{Name: PathTools, Value: filepath.Join(t.TempDir(), "var", "gd-tools")},
-		{Name: PathEtc, Value: filepath.Join(t.TempDir(), "etc")},
-		{Name: PathBin, Value: filepath.Join(t.TempDir(), "bin")},
-		{Name: PathRun, Value: filepath.Join(t.TempDir(), "run")},
-		{Name: PathDownloads, Value: filepath.Join(t.TempDir(), "downloads")},
-	})
-	if err != nil {
-		t.Fatalf("LoadPlatformWithPaths failed: %v", err)
+func TestDownloadLocalPath(t *testing.T) {
+	pf := &Platform{
+		options: &Options{
+			rootDir: "/root",
+		},
 	}
-	return pf
-}
-
-func TestDownloadLocalPathAndTargetPath(t *testing.T) {
-	pf := testPlatform(t)
 
 	dl := &Download{
-		Filename: "nextcloud.tar.bz2",
-		Binary:   "occ",
+		Filename: "archive.tar.gz",
 	}
 
-	if got := dl.LocalPath(pf); got != filepath.Join(pf.DownloadsDir(), "nextcloud.tar.bz2") {
-		t.Fatalf("LocalPath mismatch: got %q", got)
-	}
+	got := dl.LocalPath(pf)
+	want := "/root/Downloads/archive.tar.gz"
 
-	if got := dl.TargetPath(pf); got != filepath.Join(pf.BinDir(), "occ") {
-		t.Fatalf("TargetPath mismatch: got %q", got)
+	if got != want {
+		t.Fatalf("LocalPath mismatch: got %q want %q", got, want)
 	}
 }
 
-func TestDownloadMarkerPath(t *testing.T) {
+func TestDownloadTargetPathEmpty(t *testing.T) {
+	pf := &Platform{
+		options: &Options{
+			binDir: "/usr/local/bin",
+		},
+	}
+
+	dl := &Download{}
+
+	got := dl.TargetPath(pf)
+	if got != "" {
+		t.Fatalf("TargetPath mismatch: got %q want empty", got)
+	}
+}
+
+func TestDownloadTargetPath(t *testing.T) {
+	pf := &Platform{
+		options: &Options{
+			binDir: "/usr/local/bin",
+		},
+	}
+
+	dl := &Download{
+		Binary: "ocis",
+	}
+
+	got := dl.TargetPath(pf)
+	want := "/usr/local/bin/ocis"
+
+	if got != want {
+		t.Fatalf("TargetPath mismatch: got %q want %q", got, want)
+	}
+}
+
+func TestDownloadDirectoryPathEmpty(t *testing.T) {
+	dl := &Download{}
+
+	got := dl.DirectoryPath("/srv")
+	if got != "" {
+		t.Fatalf("DirectoryPath mismatch: got %q want empty", got)
+	}
+}
+
+func TestDownloadDirectoryPath(t *testing.T) {
 	dl := &Download{
 		Directory: "nextcloud",
-		Marker:    "README",
 	}
 
-	got := dl.MarkerPath("/srv/data")
-	want := filepath.Join("/srv/data", "nextcloud", "README")
+	got := dl.DirectoryPath("/srv")
+	want := filepath.Join("/srv", "nextcloud")
+
+	if got != want {
+		t.Fatalf("DirectoryPath mismatch: got %q want %q", got, want)
+	}
+}
+
+func TestDownloadMarkerPathEmpty(t *testing.T) {
+	dl := &Download{}
+
+	got := dl.MarkerPath("/srv")
+	if got != "" {
+		t.Fatalf("MarkerPath mismatch: got %q want empty", got)
+	}
+}
+
+func TestDownloadMarkerPathWithoutDirectory(t *testing.T) {
+	dl := &Download{
+		Marker: "installed.ok",
+	}
+
+	got := dl.MarkerPath("/srv")
+	want := filepath.Join("/srv", "installed.ok")
+
 	if got != want {
 		t.Fatalf("MarkerPath mismatch: got %q want %q", got, want)
 	}
 }
 
-func TestDownloadMarkerExists(t *testing.T) {
-	root := t.TempDir()
+func TestDownloadMarkerPathWithDirectory(t *testing.T) {
 	dl := &Download{
 		Directory: "nextcloud",
-		Marker:    "README",
+		Marker:    "config/config.php",
 	}
 
-	exists, err := dl.MarkerExists(root)
-	if err != nil {
-		t.Fatalf("MarkerExists failed: %v", err)
-	}
-	if exists {
-		t.Fatal("marker should not exist yet")
-	}
+	got := dl.MarkerPath("/srv")
+	want := filepath.Join("/srv", "nextcloud", "config/config.php")
 
-	path := filepath.Join(root, "nextcloud")
-	if err := os.MkdirAll(path, 0755); err != nil {
-		t.Fatalf("MkdirAll failed: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(path, "README"), []byte("ok"), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
-
-	exists, err = dl.MarkerExists(root)
-	if err != nil {
-		t.Fatalf("MarkerExists failed: %v", err)
-	}
-	if !exists {
-		t.Fatal("marker should exist")
+	if got != want {
+		t.Fatalf("MarkerPath mismatch: got %q want %q", got, want)
 	}
 }
 
-func TestDownloadExistsLocal(t *testing.T) {
-	pf := testPlatform(t)
+func TestDownloadMarkerExistsEmptyMarker(t *testing.T) {
+	dl := &Download{}
 
-	if err := os.MkdirAll(pf.DownloadsDir(), 0755); err != nil {
+	ok, err := dl.MarkerExists("/srv")
+	if err != nil {
+		t.Fatalf("MarkerExists returned error: %v", err)
+	}
+	if ok {
+		t.Fatal("expected MarkerExists to be false")
+	}
+}
+
+func TestDownloadMarkerExistsFalse(t *testing.T) {
+	root := t.TempDir()
+
+	dl := &Download{
+		Directory: "nextcloud",
+		Marker:    "config/config.php",
+	}
+
+	ok, err := dl.MarkerExists(root)
+	if err != nil {
+		t.Fatalf("MarkerExists returned error: %v", err)
+	}
+	if ok {
+		t.Fatal("expected MarkerExists to be false")
+	}
+}
+
+func TestDownloadMarkerExistsTrue(t *testing.T) {
+	root := t.TempDir()
+
+	dl := &Download{
+		Directory: "nextcloud",
+		Marker:    "config/config.php",
+	}
+
+	path := dl.MarkerPath(root)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatalf("MkdirAll failed: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("ok"), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	ok, err := dl.MarkerExists(root)
+	if err != nil {
+		t.Fatalf("MarkerExists returned error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected MarkerExists to be true")
+	}
+}
+
+func TestDownloadExistsLocalFalse(t *testing.T) {
+	root := t.TempDir()
+
+	pf := &Platform{
+		options: &Options{
+			rootDir: root,
+		},
 	}
 
 	dl := &Download{
-		Filename: "test.bin",
+		Filename: "missing.tar.gz",
 	}
 
-	exists, err := dl.ExistsLocal(pf)
+	ok, err := dl.ExistsLocal(pf)
 	if err != nil {
-		t.Fatalf("ExistsLocal failed: %v", err)
+		t.Fatalf("ExistsLocal returned error: %v", err)
 	}
-	if exists {
-		t.Fatal("download should not exist yet")
-	}
-
-	if err := os.WriteFile(dl.LocalPath(pf), []byte("hello"), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
-
-	exists, err = dl.ExistsLocal(pf)
-	if err != nil {
-		t.Fatalf("ExistsLocal failed: %v", err)
-	}
-	if !exists {
-		t.Fatal("download should exist")
+	if ok {
+		t.Fatal("expected ExistsLocal to be false")
 	}
 }
 
-func TestHashesAndVerifyFile(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "file.txt")
-	if err := os.WriteFile(path, []byte("hello"), 0644); err != nil {
+func TestDownloadExistsLocalTrue(t *testing.T) {
+	root := t.TempDir()
+
+	pf := &Platform{
+		options: &Options{
+			rootDir: root,
+		},
+	}
+
+	dl := &Download{
+		Filename: "present.tar.gz",
+	}
+
+	path := dl.LocalPath(pf)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("content"), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	ok, err := dl.ExistsLocal(pf)
+	if err != nil {
+		t.Fatalf("ExistsLocal returned error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected ExistsLocal to be true")
+	}
+}
+
+func TestHashes(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+
+	if err := os.WriteFile(path, []byte("abc"), 0o644); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
 	md5sum, sha256sum, sha512sum, err := Hashes(path)
 	if err != nil {
-		t.Fatalf("Hashes failed: %v", err)
+		t.Fatalf("Hashes returned error: %v", err)
 	}
 
-	dl := &Download{
-		Filename: "file.txt",
-		MD5:      md5sum,
-		SHA256:   sha256sum,
-		SHA512:   sha512sum,
+	if md5sum != "900150983cd24fb0d6963f7d28e17f72" {
+		t.Fatalf("unexpected MD5: %q", md5sum)
 	}
-
-	if err := dl.VerifyFile(path); err != nil {
-		t.Fatalf("VerifyFile failed: %v", err)
+	if sha256sum != "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" {
+		t.Fatalf("unexpected SHA256: %q", sha256sum)
+	}
+	if sha512sum != "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"+
+		"2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f" {
+		t.Fatalf("unexpected SHA512: %q", sha512sum)
 	}
 }
 
-func TestVerifyFileMismatch(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "file.txt")
-	if err := os.WriteFile(path, []byte("hello"), 0644); err != nil {
+func TestVerifyFileOKWithMD5(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+
+	if err := os.WriteFile(path, []byte("abc"), 0o644); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
 	dl := &Download{
-		Filename: "file.txt",
+		Filename: "test.txt",
+		MD5:      "900150983cd24fb0d6963f7d28e17f72",
+	}
+
+	if err := dl.VerifyFile(path); err != nil {
+		t.Fatalf("VerifyFile returned error: %v", err)
+	}
+}
+
+func TestVerifyFileOKWithSHA256(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+
+	if err := os.WriteFile(path, []byte("abc"), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	dl := &Download{
+		Filename: "test.txt",
+		SHA256:   "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+	}
+
+	if err := dl.VerifyFile(path); err != nil {
+		t.Fatalf("VerifyFile returned error: %v", err)
+	}
+}
+
+func TestVerifyFileOKWithSHA512(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+
+	if err := os.WriteFile(path, []byte("abc"), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	dl := &Download{
+		Filename: "test.txt",
+		SHA512: "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a" +
+			"2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f",
+	}
+
+	if err := dl.VerifyFile(path); err != nil {
+		t.Fatalf("VerifyFile returned error: %v", err)
+	}
+}
+
+func TestVerifyFileMD5Mismatch(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+
+	if err := os.WriteFile(path, []byte("abc"), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	dl := &Download{
+		Filename: "test.txt",
+		MD5:      "deadbeef",
+	}
+
+	err := dl.VerifyFile(path)
+	if err == nil {
+		t.Fatal("expected VerifyFile to fail")
+	}
+	if got, want := err.Error(), "MD5 mismatch for test.txt"; got != want {
+		t.Fatalf("unexpected error: got %q want %q", got, want)
+	}
+}
+
+func TestVerifyFileSHA256Mismatch(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+
+	if err := os.WriteFile(path, []byte("abc"), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	dl := &Download{
+		Filename: "test.txt",
 		SHA256:   "deadbeef",
 	}
 
-	if err := dl.VerifyFile(path); err == nil {
-		t.Fatal("expected checksum mismatch")
+	err := dl.VerifyFile(path)
+	if err == nil {
+		t.Fatal("expected VerifyFile to fail")
+	}
+	if got, want := err.Error(), "SHA256 mismatch for test.txt"; got != want {
+		t.Fatalf("unexpected error: got %q want %q", got, want)
+	}
+}
+
+func TestVerifyFileSHA512Mismatch(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.txt")
+
+	if err := os.WriteFile(path, []byte("abc"), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	dl := &Download{
+		Filename: "test.txt",
+		SHA512:   "deadbeef",
+	}
+
+	err := dl.VerifyFile(path)
+	if err == nil {
+		t.Fatal("expected VerifyFile to fail")
+	}
+	if got, want := err.Error(), "SHA512 mismatch for test.txt"; got != want {
+		t.Fatalf("unexpected error: got %q want %q", got, want)
+	}
+}
+
+func TestVerifyLocalOK(t *testing.T) {
+	root := t.TempDir()
+
+	pf := &Platform{
+		options: &Options{
+			rootDir: root,
+		},
+	}
+
+	dl := &Download{
+		Filename: "test.txt",
+		SHA256:   "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+	}
+
+	path := dl.LocalPath(pf)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("abc"), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	if err := dl.VerifyLocal(pf); err != nil {
+		t.Fatalf("VerifyLocal returned error: %v", err)
 	}
 }

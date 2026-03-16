@@ -7,7 +7,9 @@ import (
 	"github.com/gd-tools/gd-tools/utils"
 )
 
-const BaselinesPath = "system/baselines.json"
+const (
+	BaselinesTemplate = "system/baselines.json"
+)
 
 // Baseline describes the platform runtime environment.
 type Baseline struct {
@@ -19,30 +21,31 @@ type Baseline struct {
 	Packages []string `json:"packages"`
 }
 
-// DefaultBaselines returns the baselines embedded in the gdt binary.
-func DefaultBaselines() []Baseline {
-	data, err := Render(BaselinesPath, nil)
+// LoadBaselines loads the embedded baselines and selects the requested one.
+func (pf *Platform) LoadBaselines(name string) error {
+	data, err := Render(BaselinesTemplate, nil)
 	if err != nil {
-		return nil // error will be reported later
+		return fmt.Errorf("failed to render %s: %w", BaselinesTemplate, err)
 	}
 
-	var baselines []Baseline
-	err = json.Unmarshal(data, &baselines)
-	if err != nil {
-		return nil // error will be reported later
+	if err = json.Unmarshal(data, &pf.baselines); err != nil {
+		return fmt.Errorf("failed to unmarshal %s: %w", BaselinesTemplate, err)
 	}
 
-	return baselines
-}
-
-// GetBaseline returns one baseline by name.
-func (pf *Platform) GetBaseline(name string) (*Baseline, error) {
-	for i := range pf.Baselines {
-		if pf.Baselines[i].Name == name {
-			return &pf.Baselines[i], nil
+	if name == "" {
+		return fmt.Errorf("missing baseline name")
+	}
+	for i := range pf.baselines {
+		if pf.baselines[i].Name == name {
+			pf.Baseline = &pf.baselines[i]
+			break
 		}
 	}
-	return nil, fmt.Errorf("baseline %q not found", name)
+	if pf.Baseline == nil {
+		return fmt.Errorf("baseline %q not found", name)
+	}
+
+	return nil
 }
 
 // Info returns formatted information for the baseline.
