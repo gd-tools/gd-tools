@@ -4,7 +4,7 @@ package model
 type Mount struct {
 	Provider string `json:"provider"`          // e.g. "hetzner"
 	ID       string `json:"id"`                // e.g. "123456789"
-	Dir      string `json:"dir"`               // e.g. "/var/gd-tools"
+	Path     string `json:"path"`              // e.g. "/var/gd-tools"
 	FSType   string `json:"fs_type,omitempty"` // e.g. "ext4"
 	Options  string `json:"options,omitempty"` // e.g. "defaults,noatime"
 }
@@ -13,9 +13,9 @@ type Mount struct {
 type MountList []Mount
 
 // HasMount reports whether a mount for the given directory exists.
-func (mounts MountList) HasMount(dir string) bool {
+func (mounts MountList) HasMount(path string) bool {
 	for _, mount := range mounts {
-		if mount.Dir == dir {
+		if mount.Path == path {
 			return true
 		}
 	}

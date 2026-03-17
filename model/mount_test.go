@@ -7,7 +7,7 @@ func TestMountListHasMount(t *testing.T) {
 		{
 			Provider: "hetzner",
 			ID:       "123",
-			Dir:      "/data",
+			Path:     "/data",
 		},
 	}
 

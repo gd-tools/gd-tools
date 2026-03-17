@@ -12,10 +12,7 @@ import (
 func LoadJSON(name string, v any) error {
 	data, err := os.ReadFile(name)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return err
-		}
-		return fmt.Errorf("read %s: %w", name, err)
+		return err
 	}
 
 	if err := json.Unmarshal(data, v); err != nil {
