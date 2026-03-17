@@ -2,7 +2,6 @@ package utils
 
 import (
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
 )
@@ -92,26 +91,5 @@ func TestFetchPassword(t *testing.T) {
 
 	if pw != pw2 {
 		t.Fatalf("password should persist")
-	}
-}
-
-func TestGetRSAKeyPair(t *testing.T) {
-	if _, err := exec.LookPath("ssh-keygen"); err != nil {
-		t.Skip("ssh-keygen not installed")
-	}
-
-	dir := t.TempDir()
-	old, _ := os.Getwd()
-	defer os.Chdir(old)
-
-	os.Chdir(dir)
-
-	priv, pub, err := GetRSAKeyPair("test.example.org")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(priv) == 0 || len(pub) == 0 {
-		t.Fatal("keypair not generated")
 	}
 }

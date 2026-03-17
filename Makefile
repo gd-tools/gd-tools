@@ -46,12 +46,8 @@ format:
 	go mod tidy
 	go fmt ./...
 
-test:
-	go test ./platform
-	go test ./utils
-	go test ./identity
-	go test ./cmd/gd-tools
-	# TODO go test ./...
+test: format
+	go test ./...
 
 clean:
 	rm -f bin/gdt bin/gd-tools bin/gd-occ bin/gd-wp-cli

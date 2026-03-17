@@ -8,7 +8,6 @@ import (
 	"hash"
 	"math/big"
 	"os"
-	"os/exec"
 	"sort"
 
 	"github.com/tv42/zbase32"
@@ -18,7 +17,7 @@ import (
 )
 
 var (
-	SecretsName  = "secrets.json"
+	SecretsFile  = "secrets.json"
 	MailUserName = "mailuser"
 )
 
@@ -74,7 +73,7 @@ func GeneratePBKDF2(password string) (string, error) {
 func LoadSecrets() (*SecretList, error) {
 	var list SecretList
 
-	content, err := os.ReadFile(SecretsName)
+	content, err := os.ReadFile(SecretsFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &list, nil
@@ -100,16 +99,16 @@ func (list *SecretList) Save() error {
 
 	content, err := json.MarshalIndent(list, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", SecretsName, err)
+		return fmt.Errorf("failed to marshal %s: %w", SecretsFile, err)
 	}
 
-	existing, err := os.ReadFile(SecretsName)
+	existing, err := os.ReadFile(SecretsFile)
 	if err == nil && bytes.Equal(existing, content) {
 		return nil
 	}
 
-	if err := os.WriteFile(SecretsName, content, 0600); err != nil {
-		return fmt.Errorf("failed to write %s: %w", SecretsName, err)
+	if err := os.WriteFile(SecretsFile, content, 0600); err != nil {
+		return fmt.Errorf("failed to write %s: %w", SecretsFile, err)
 	}
 
 	return nil
@@ -195,37 +194,4 @@ func FetchPassword(length int, domain, user string) (string, error) {
 	}
 
 	return password, nil
-}
-
-func GetRSAKeyPair(fqdn string) ([]byte, []byte, error) {
-	priv, err1 := os.ReadFile("root_id_rsa")
-	publ, err2 := os.ReadFile("root_id_rsa.pub")
-	if err1 == nil && err2 == nil {
-		return priv, publ, nil
-	}
-
-	cmd := exec.Command(
-		"ssh-keygen",
-		"-t", "rsa",
-		"-C", "root@"+fqdn,
-		"-f", "root_id_rsa",
-		"-N", "",
-	)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return nil, nil, err
-	}
-
-	priv, err1 = os.ReadFile("root_id_rsa")
-	if err1 != nil {
-		return nil, nil, err1
-	}
-	publ, err2 = os.ReadFile("root_id_rsa.pub")
-	if err2 != nil {
-		return nil, nil, err2
-	}
-
-	return priv, publ, nil
 }

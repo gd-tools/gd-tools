@@ -12,7 +12,8 @@ type Options struct {
 	binDir  string
 	runDir  string
 
-	LookupIP func(host string) ([]net.IP, error)
+	LookupIP      func(host string) ([]net.IP, error)
+	GetRSAKeyPair func(fqdn string) ([]byte, []byte, error)
 }
 
 func defaultOptions() *Options {
@@ -23,7 +24,8 @@ func defaultOptions() *Options {
 		binDir:  "/usr/local/bin",
 		runDir:  "/run",
 
-		LookupIP: net.LookupIP,
+		LookupIP:      net.LookupIP,
+		GetRSAKeyPair: ProdRSAKeyPair,
 	}
 }
 

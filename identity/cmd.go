@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/gd-tools/gd-tools/config"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -13,7 +12,6 @@ var Command = &cli.Command{
 	Name:  "identity",
 	Usage: "Prepare or update gd-tools common information",
 	Flags: []cli.Flag{
-		config.FlagVerbose,
 		&cli.StringFlag{
 			Name:  "company",
 			Usage: "Name of your organisation",

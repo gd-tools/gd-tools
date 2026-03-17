@@ -23,7 +23,17 @@ func RunCLI(t *testing.T, app *cli.App, args ...string) CLIResult {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Chdir(oldwd)
+
+	oldBase := os.Getenv("GD_TOOLS_BASE")
+
+	t.Cleanup(func() {
+		_ = os.Chdir(oldwd)
+		if oldBase == "" {
+			_ = os.Unsetenv("GD_TOOLS_BASE")
+		} else {
+			_ = os.Setenv("GD_TOOLS_BASE", oldBase)
+		}
+	})
 
 	if err := os.Chdir(base); err != nil {
 		t.Fatal(err)
@@ -34,12 +44,20 @@ func RunCLI(t *testing.T, app *cli.App, args ...string) CLIResult {
 	}
 
 	var out bytes.Buffer
+	var errOut bytes.Buffer
+
 	app.Writer = &out
+	app.ErrWriter = &errOut
 
 	err = app.Run(append([]string{"gdt"}, args...))
 
+	output := out.String()
+	if errOut.Len() > 0 {
+		output += errOut.String()
+	}
+
 	return CLIResult{
-		Output: out.String(),
+		Output: output,
 		Err:    err,
 		Base:   base,
 	}

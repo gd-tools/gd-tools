@@ -62,7 +62,7 @@ func TestEnsureAndSaveIdentity(t *testing.T) {
 		t.Fatalf("save failed: %v", err)
 	}
 
-	id, err := EnsureIdentity()
+	id, err = EnsureIdentity()
 	if err != nil {
 		t.Fatalf("reload failed: %v", err)
 	}

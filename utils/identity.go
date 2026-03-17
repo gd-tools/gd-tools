@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -55,10 +53,12 @@ func (id *Identity) DMARCDomain() string {
 }
 
 func EnsureIdentity() (*Identity, error) {
-	content, err := os.ReadFile(IdentityFile)
+	var id Identity
+
+	err := LoadJSON(IdentityFile, &id)
 	if err != nil {
 		if os.IsNotExist(err) {
-			id := Identity{
+			id = Identity{
 				Company:  DefaultCompany,
 				Domain:   DefaultDomain,
 				SysAdmin: GetSysAdmin(),
@@ -71,12 +71,7 @@ func EnsureIdentity() (*Identity, error) {
 			}
 			return &id, nil
 		}
-		return nil, fmt.Errorf("failed to read %s: %w", IdentityFile, err)
-	}
-
-	var id Identity
-	if err := json.Unmarshal(content, &id); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal %s: %w", IdentityFile, err)
+		return nil, err
 	}
 
 	if id.Domain == DefaultDomain {
@@ -93,14 +88,13 @@ func EnsureIdentity() (*Identity, error) {
 func FetchIdentity() (*Identity, error) {
 	path := filepath.Join("..", IdentityFile)
 
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("missing %s - are we in the correct dir?", path)
-	}
-
 	var id Identity
-	if err := json.Unmarshal(content, &id); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal %s: %w", path, err)
+	err := LoadJSON(path, &id)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("missing %s - are we in the correct dir?", path)
+		}
+		return nil, err
 	}
 
 	if id.DMARC == "" {
@@ -111,27 +105,7 @@ func FetchIdentity() (*Identity, error) {
 }
 
 func (id *Identity) Save() error {
-	content, err := json.MarshalIndent(id, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", IdentityFile, err)
-	}
-
-	existing, err := os.ReadFile(IdentityFile)
-	if err == nil && bytes.Equal(existing, content) {
-		return nil
-	}
-
-	tmp := IdentityFile + ".tmp"
-
-	if err := os.WriteFile(tmp, content, 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", tmp, err)
-	}
-
-	if err := os.Rename(tmp, IdentityFile); err != nil {
-		return fmt.Errorf("failed to replace %s: %w", IdentityFile, err)
-	}
-
-	return nil
+	return SaveJSON(IdentityFile, id)
 }
 
 func GetTimeZone() string {
