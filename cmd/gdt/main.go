@@ -7,12 +7,12 @@ import (
 	"github.com/gd-tools/gd-tools/account"
 	"github.com/gd-tools/gd-tools/backup"
 	"github.com/gd-tools/gd-tools/bash"
-	"github.com/gd-tools/gd-tools/basics"
 	"github.com/gd-tools/gd-tools/brevo"
 	"github.com/gd-tools/gd-tools/cert"
 	"github.com/gd-tools/gd-tools/deploy"
 	"github.com/gd-tools/gd-tools/domain"
 	"github.com/gd-tools/gd-tools/hello"
+	"github.com/gd-tools/gd-tools/identity"
 	"github.com/gd-tools/gd-tools/install"
 	"github.com/gd-tools/gd-tools/login"
 	//"github.com/gd-tools/gd-tools/mediawiki"
@@ -49,12 +49,12 @@ func main() {
 			fmt.Println("account")
 			fmt.Println("backup")
 			fmt.Println("bash")
-			fmt.Println("basics")
 			fmt.Println("brevo")
 			fmt.Println("cert")
 			fmt.Println("deploy")
 			fmt.Println("domain")
 			fmt.Println("hello")
+			fmt.Println("identity")
 			fmt.Println("install")
 			fmt.Println("login")
 			fmt.Println("nextcloud")
@@ -83,12 +83,12 @@ func getCommands() []*cli.Command {
 		account.Command,
 		backup.Command,
 		bash.Command,
-		basics.Command,
 		brevo.Command,
 		cert.Command,
 		deploy.Command,
 		domain.Command,
 		hello.Command,
+		identity.Command,
 		install.Command,
 		login.Command,
 		//mediawiki.Command,

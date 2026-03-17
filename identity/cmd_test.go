@@ -1,4 +1,4 @@
-package basics
+package identity
 
 import (
 	"os"
@@ -10,12 +10,12 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func TestBasicsPrint(t *testing.T) {
+func TestIdentityPrint(t *testing.T) {
 	app := &cli.App{
 		Commands: []*cli.Command{Command},
 	}
 
-	res := testutil.RunCLI(t, app, "basics")
+	res := testutil.RunCLI(t, app, "identity")
 
 	if res.Err != nil {
 		t.Fatalf("command failed: %v", res.Err)
@@ -26,13 +26,13 @@ func TestBasicsPrint(t *testing.T) {
 	}
 }
 
-func TestBasicsUpdate(t *testing.T) {
+func TestIdentityUpdate(t *testing.T) {
 	app := &cli.App{
 		Commands: []*cli.Command{Command},
 	}
 
 	res := testutil.RunCLI(t, app,
-		"basics",
+		"identity",
 		"--company", "Example Ltd",
 		"--domain", "example.org",
 	)
@@ -41,7 +41,7 @@ func TestBasicsUpdate(t *testing.T) {
 		t.Fatalf("command failed: %v", res.Err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(res.Base, "basics.json"))
+	data, err := os.ReadFile(filepath.Join(res.Base, "identity.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

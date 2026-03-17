@@ -1,4 +1,4 @@
-package basics
+package identity
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 )
 
 var Command = &cli.Command{
-	Name:  "basics",
-	Usage: "Prepare or update gd-tools base directory",
+	Name:  "identity",
+	Usage: "Prepare or update gd-tools common information",
 	Flags: []cli.Flag{
 		config.FlagVerbose,
 		&cli.StringFlag{
@@ -60,56 +60,56 @@ func Run(c *cli.Context) error {
 		return err
 	}
 
-	bsc, err := utils.EnsureBasics()
+	id, err := utils.EnsureIdentity()
 	if err != nil {
 		return err
 	}
 
-	if !basicsHasChanges(c) {
-		printBasics(c.App.Writer, bsc)
+	if !identityHasChanges(c) {
+		printIdentity(c.App.Writer, id)
 		return nil
 	}
 
 	if c.IsSet("company") {
-		bsc.Company = c.String("company")
+		id.Company = c.String("company")
 	}
 	if c.IsSet("domain") {
-		bsc.Domain = c.String("domain")
+		id.Domain = c.String("domain")
 	}
 	if c.IsSet("sysadmin") {
-		bsc.SysAdmin = c.String("sysadmin")
+		id.SysAdmin = c.String("sysadmin")
 	}
 	if c.IsSet("help-url") {
-		bsc.HelpURL = c.String("help-url")
+		id.HelpURL = c.String("help-url")
 	}
 	if c.IsSet("timezone") {
-		bsc.TimeZone = c.String("timezone")
+		id.TimeZone = c.String("timezone")
 	}
 	if c.IsSet("language") {
-		bsc.Language = c.String("language")
+		id.Language = c.String("language")
 	}
 	if c.IsSet("region") {
-		bsc.Region = c.String("region")
+		id.Region = c.String("region")
 	}
 	if c.IsSet("reg-ttl") {
-		bsc.RegTTL = c.Int("reg-ttl")
+		id.RegTTL = c.Int("reg-ttl")
 	}
 
 	if c.IsSet("dmarc") {
-		bsc.DMARC = c.String("dmarc")
+		id.DMARC = c.String("dmarc")
 	}
-	if bsc.DMARC == "" {
-		bsc.DMARC = utils.DefaultDMARC
+	if id.DMARC == "" {
+		id.DMARC = utils.DefaultDMARC
 	}
 
-	if err := bsc.Save(); err != nil {
+	if err := id.Save(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func basicsHasChanges(c *cli.Context) bool {
+func identityHasChanges(c *cli.Context) bool {
 	return c.IsSet("company") ||
 		c.IsSet("domain") ||
 		c.IsSet("sysadmin") ||
@@ -121,17 +121,17 @@ func basicsHasChanges(c *cli.Context) bool {
 		c.IsSet("dmarc")
 }
 
-func printBasics(w io.Writer, bsc *utils.Basics) {
+func printIdentity(w io.Writer, id *utils.Identity) {
 	fmt.Fprintf(w, "%-12s  %s\n", "KEY", "VALUE")
 	fmt.Fprintf(w, "%-12s  %s\n", "------------", "------------------------------")
 
-	fmt.Fprintf(w, "%-12s  %s\n", "Company", bsc.Company)
-	fmt.Fprintf(w, "%-12s  %s\n", "Domain", bsc.Domain)
-	fmt.Fprintf(w, "%-12s  %s\n", "SysAdmin", bsc.SysAdmin)
-	fmt.Fprintf(w, "%-12s  %s\n", "HelpURL", bsc.HelpURL)
-	fmt.Fprintf(w, "%-12s  %s\n", "TimeZone", bsc.TimeZone)
-	fmt.Fprintf(w, "%-12s  %s\n", "Language", bsc.Language)
-	fmt.Fprintf(w, "%-12s  %s\n", "Region", bsc.Region)
-	fmt.Fprintf(w, "%-12s  %d\n", "RegTTL", bsc.RegTTL)
-	fmt.Fprintf(w, "%-12s  %s\n", "DMARC", bsc.DMARC)
+	fmt.Fprintf(w, "%-12s  %s\n", "Company", id.Company)
+	fmt.Fprintf(w, "%-12s  %s\n", "Domain", id.Domain)
+	fmt.Fprintf(w, "%-12s  %s\n", "SysAdmin", id.SysAdmin)
+	fmt.Fprintf(w, "%-12s  %s\n", "HelpURL", id.HelpURL)
+	fmt.Fprintf(w, "%-12s  %s\n", "TimeZone", id.TimeZone)
+	fmt.Fprintf(w, "%-12s  %s\n", "Language", id.Language)
+	fmt.Fprintf(w, "%-12s  %s\n", "Region", id.Region)
+	fmt.Fprintf(w, "%-12s  %d\n", "RegTTL", id.RegTTL)
+	fmt.Fprintf(w, "%-12s  %s\n", "DMARC", id.DMARC)
 }

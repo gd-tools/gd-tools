@@ -6,14 +6,10 @@ import (
 	"path/filepath"
 
 	"github.com/gd-tools/gd-tools/agent"
-	"github.com/gd-tools/gd-tools/assets"
+	"github.com/gd-tools/gd-tools/platform"
 	"github.com/gd-tools/gd-tools/config"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
-)
-
-const (
-	DefaultBaseline = "noble-8.3-2.4" // for new servers
 )
 
 var Describe = `Initialize a new production server
@@ -21,16 +17,17 @@ var Describe = `Initialize a new production server
 Creates the initial configuration on the development workstation.
 Does not modify the production server (yet).
 
-Calling 'gdt setup' without arguments lists alternatives.
+Calling 'gdt setup' without arguments lists alternative baselines.
 
 For detailed documentation and usage examples, see:
 https://github.com/gd-tools/gd-tools/wiki/10-Setup`
 
 var (
+	// System setup
 	FlagBaseline = &cli.StringFlag{
 		Name:  "baseline",
 		Usage: "operating environment for this production server",
-		Value: DefaultBaseline,
+		Value: platform.DefaultBaseline,
 	}
 	FlagHetznerVolume = &cli.StringFlag{
 		Name:  "hetzner-volume",
@@ -45,10 +42,8 @@ var (
 		Usage: "e.g. '4G' - create or verify swapfile",
 		Value: "0",
 	}
-	FlagDMARC = &cli.StringFlag{
-		Name:  "dmarc",
-		Usage: "DMARC value (p=quarantine; pct=100; adkim=s; aspf=s)",
-	}
+
+	// Identity
 	FlagCompany = &cli.StringFlag{
 		Name:  "company",
 		Usage: "Company name, used e.g. for Webmail",
@@ -65,6 +60,12 @@ var (
 		Name:  "help-url",
 		Usage: "Support URL for this server",
 	}
+	FlagDMARC = &cli.StringFlag{
+		Name:  "dmarc",
+		Usage: "DMARC value (p=quarantine; pct=100; adkim=s; aspf=s)",
+	}
+
+	// Credentials
 	FlagUbuntuPro = &cli.StringFlag{
 		Name:  "ubuntu-pro",
 		Usage: "attach Ubuntu Pro subscription using the provided token",
@@ -97,11 +98,11 @@ var Command = &cli.Command{
 		FlagHetznerVolume,
 		FlagRaidDevice,
 		FlagSwapSize,
-		FlagDMARC,
 		FlagCompany,
 		FlagDomain,
 		FlagSysAdmin,
 		FlagHelpURL,
+		FlagDMARC,
 		FlagUbuntuPro,
 		FlagSpamBarrier,
 		FlagHetznerDNS,
@@ -113,14 +114,14 @@ var Command = &cli.Command{
 }
 
 func Run(c *cli.Context) error {
-	catalog, err := assets.LoadCatalog()
-	if err != nil {
-		return err
-	}
-
 	if c.NArg() == 0 {
+		pf, err := platform.LoadBaselines(platform.DefaultBaseline, nil)
+		if err != nil {
+			return err
+		}
+
 		fmt.Println("Avaliable baselines:")
-		for _, bl := range catalog.Baselines {
+		for _, bl := range pf.Baselines {
 			fmt.Printf("Baseline ....: %s\n", bl.Name)
 			fmt.Printf("  Ubuntu ....: %s\n", bl.Ubuntu)
 			fmt.Printf("  PHP .......: %s\n", bl.PHP)
@@ -130,12 +131,12 @@ func Run(c *cli.Context) error {
 		return nil
 	}
 
-	baseline, err := catalog.GetBaseline(c.String("baseline"))
+	pf, err := platform.LoadBaselines(c.String("baseline"), nil)
 	if err != nil {
 		return err
 	}
 
-	basics, err := utils.EnsureBasics()
+	id, err := utils.EnsureIdentity()
 	if err != nil {
 		return err
 	}
@@ -148,11 +149,11 @@ func Run(c *cli.Context) error {
 
 	cfg := config.Config{
 		Verbose:         c.Bool("verbose"),
-		BaselineName:    baseline.Name,
-		TimeZone:        basics.TimeZone,
-		Language:        basics.Language,
-		Region:          basics.Region,
-		RegTTL:          basics.RegTTL,
+		BaselineName:    pf.Baseline.Name,
+		TimeZone:        id.TimeZone,
+		Language:        id.Language,
+		Region:          id.Region,
+		RegTTL:          id.RegTTL,
 		HostName:        host,
 		DomainName:      domain,
 		SwapSize:        c.String("swap-size"),
@@ -173,20 +174,20 @@ func Run(c *cli.Context) error {
 
 	configPath := filepath.Join(fqdn, config.ConfigName)
 
-	if cfg.DMARC == "" {
-		cfg.DMARC = basics.DMARC
-	}
 	if cfg.Company == "" {
-		cfg.Company = basics.Company
+		cfg.Company = id.Company
 	}
 	if cfg.Domain == "" {
-		cfg.Domain = basics.Domain
+		cfg.Domain = id.Domain
 	}
 	if cfg.SysAdmin == "" {
-		cfg.SysAdmin = basics.SysAdmin
+		cfg.SysAdmin = id.SysAdmin
 	}
 	if cfg.HelpURL == "" {
-		cfg.HelpURL = basics.HelpURL
+		cfg.HelpURL = id.HelpURL
+	}
+	if cfg.DMARC == "" {
+		cfg.DMARC = id.DMARC
 	}
 
 	if _, err := os.Stat(configPath); err == nil {
@@ -209,7 +210,7 @@ func Run(c *cli.Context) error {
 		}
 	}
 
-	// read accumulated known_hosts
+	// read accumulated known_hosts (keep error)
 	khContent, khErr := os.ReadFile("known_hosts")
 
 	// check for filesystems to be mounted
@@ -230,7 +231,7 @@ func Run(c *cli.Context) error {
 		cfg.Mounts = append(cfg.Mounts, &mount)
 	}
 
-	// From here on, we operate inside the host directory on the development workstation.
+	// From here on, we operate inside the server directory on the development workstation.
 	if err := os.Mkdir(fqdn, 0755); err != nil {
 		return err
 	}

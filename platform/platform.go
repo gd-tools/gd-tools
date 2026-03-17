@@ -10,9 +10,9 @@ const (
 
 // Platform describes the runtime environment of gd-tools.
 type Platform struct {
-	// baselines describe the available platforms.
+	// Baselines describe the available platforms.
 	// This contains Ubuntu, PHP and Dovecot Versions.
-	baselines []Baseline
+	Baselines []Baseline
 
 	// Baseline points to the version currently in use.
 	Baseline *Baseline `json:"baseline"`
@@ -50,7 +50,7 @@ func LoadPlatform(name string, opts *Options) (*Platform, error) {
 }
 
 func (pf *Platform) Validate() error {
-	if len(pf.baselines) == 0 {
+	if len(pf.Baselines) == 0 {
 		return fmt.Errorf("platform has no baselines")
 	}
 	if pf.Baseline == nil {

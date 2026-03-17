@@ -13,9 +13,9 @@ import (
 const (
 	IdentityFile = "identity.json"
 
-	DefaultTimeZone = "Europe/Berlin"
 	DefaultCompany  = "Example GmbH"
 	DefaultDomain   = "example.com"
+	DefaultTimeZone = "Europe/Berlin"
 	DefaultRegTTL   = 3600
 	DefaultDMARC    = "v=DMARC1; p=quarantine; pct=100; adkim=s; aspf=s"
 )
@@ -24,11 +24,11 @@ type Identity struct {
 	Company  string `json:"company"`
 	Domain   string `json:"domain"`
 	SysAdmin string `json:"sys_admin"`
+	HelpURL  string `json:"help_url"`
 	TimeZone string `json:"time_zone"`
 	Language string `json:"language"`
 	Region   string `json:"region"`
 	RegTTL   int    `json:"reg_ttl"`
-	HelpURL  string `json:"help_url"`
 	DMARC    string `json:"dmarc"`
 }
 
@@ -80,7 +80,7 @@ func EnsureIdentity() (*Identity, error) {
 	}
 
 	if id.Domain == DefaultDomain {
-		return nil, fmt.Errorf("%s has default values - please update", IdentityFile)
+		return nil, fmt.Errorf("%s has default values - please run 'gdt identity'", IdentityFile)
 	}
 
 	if id.DMARC == "" {

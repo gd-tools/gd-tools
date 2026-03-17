@@ -4,7 +4,7 @@ import "testing"
 
 func TestValidateOK(t *testing.T) {
 	pf := &Platform{
-		baselines: []Baseline{
+		Baselines: []Baseline{
 			{Name: "noble-8.3-2.4", PHP: "8.3"},
 		},
 		Baseline: &Baseline{
@@ -46,7 +46,7 @@ func TestValidateNoBaselines(t *testing.T) {
 
 func TestValidateNoBaselinePointer(t *testing.T) {
 	pf := &Platform{
-		baselines: []Baseline{{Name: "noble-8.3-2.4"}},
+		Baselines: []Baseline{{Name: "noble-8.3-2.4"}},
 		options:   &Options{},
 		Products:  []Product{{}},
 	}
@@ -62,7 +62,7 @@ func TestValidateNoBaselinePointer(t *testing.T) {
 
 func TestValidateNoOptions(t *testing.T) {
 	pf := &Platform{
-		baselines: []Baseline{{Name: "noble-8.3-2.4"}},
+		Baselines: []Baseline{{Name: "noble-8.3-2.4"}},
 		Baseline:  &Baseline{Name: "noble-8.3-2.4"},
 		Products:  []Product{{}},
 	}
@@ -78,7 +78,7 @@ func TestValidateNoOptions(t *testing.T) {
 
 func TestValidateNoProducts(t *testing.T) {
 	pf := &Platform{
-		baselines: []Baseline{{Name: "noble-8.3-2.4"}},
+		Baselines: []Baseline{{Name: "noble-8.3-2.4"}},
 		Baseline:  &Baseline{Name: "noble-8.3-2.4"},
 		options:   &Options{},
 	}

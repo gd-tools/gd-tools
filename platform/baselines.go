@@ -28,16 +28,16 @@ func (pf *Platform) LoadBaselines(name string) error {
 		return fmt.Errorf("failed to render %s: %w", BaselinesTemplate, err)
 	}
 
-	if err = json.Unmarshal(data, &pf.baselines); err != nil {
+	if err = json.Unmarshal(data, &pf.Baselines); err != nil {
 		return fmt.Errorf("failed to unmarshal %s: %w", BaselinesTemplate, err)
 	}
 
 	if name == "" {
 		return fmt.Errorf("missing baseline name")
 	}
-	for i := range pf.baselines {
-		if pf.baselines[i].Name == name {
-			pf.Baseline = &pf.baselines[i]
+	for i := range pf.Baselines {
+		if pf.Baselines[i].Name == name {
+			pf.Baseline = &pf.Baselines[i]
 			break
 		}
 	}
