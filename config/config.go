@@ -12,9 +12,6 @@ import (
 
 const (
 	DefaultTimeout = 10
-
-	RunPrefix   = "[run]"
-	DebugPrefix = "[dbg] ##########"
 )
 
 // Config contains the persistent server plus runtime-only helpers.
@@ -46,8 +43,9 @@ func ReadConfig(c *cli.Context, pf *platform.Platform, opts *platform.Options) (
 	cfg := &Config{}
 
 	// The persistent server configuration must exist, created by 'gdt setup'.
-	if err := utils.LoadJSON(utils.ConfigFile, &cfg.Server); err != nil {
-		return err
+	err := utils.LoadJSON(utils.ConfigFile, &cfg.Server)
+	if err != nil {
+		return nil, err
 	}
 
 	// Load the server platform (necessary for recovery: never use "latest").
@@ -61,10 +59,10 @@ func ReadConfig(c *cli.Context, pf *platform.Platform, opts *platform.Options) (
 	cfg.Platform = pf
 
 	// The baseline for this particular server.
-	cfg.Baseline, err = pf.GetBaseline(cfg.BaselineName)
-	if err != nil {
+	if err := pf.LoadBaselines(cfg.BaselineName); err != nil {
 		return nil, err
 	}
+	cfg.Baseline = pf.Baseline
 
 	if c != nil {
 		cfg.Verbose = c.Bool("verbose")
@@ -93,17 +91,4 @@ func (cfg *Config) RsyncFlags() string {
 		return "-avz"
 	}
 	return "-avzq"
-}
-
-// TODO LookupIP   func(host string) ([]net.IP, error)
-// TODO RSAKeyPair func(fqdn string) ([]byte, []byte, error)
-// TODO RunShell   func(commands []string) ([]byte, error)
-
-// RunCommand executes a single shell command.
-func (cfg *Config) RunCommand(name string, args ...string) ([]byte, error) {
-	if cfg == nil || cfg.Platform == nil {
-		return fmt.Errorf("config or platform is nil")
-	}
-
-	return cfg.Platform.RunCommand(name, args...)
 }

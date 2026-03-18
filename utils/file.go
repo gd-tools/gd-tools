@@ -8,6 +8,12 @@ import (
 	"path/filepath"
 )
 
+// JoinPath helps to generate a path from a base and optional elements.
+func JoinPath(base string, paths ...string) string {
+	elems := append([]string{base}, paths...)
+	return filepath.Join(elems...)
+}
+
 // LoadJSON reads a JSON file into the provided struct or slice.
 func LoadJSON(name string, v any) error {
 	data, err := os.ReadFile(name)

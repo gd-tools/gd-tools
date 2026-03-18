@@ -15,6 +15,7 @@ func load(name string) ([]byte, error) {
 	return templateFS.ReadFile("templates/" + name)
 }
 
+// Render loads a template from the gdt binary.
 func Render(name string, data interface{}) ([]byte, error) {
 	content, err := load(name)
 	if err != nil {
