@@ -24,24 +24,24 @@ type Download struct {
 }
 
 // LocalPath returns the local cached download path.
-func (dl *Download) LocalPath(pf *Platform) string {
+func (dl *Download) LocalPath(pf *Platform) (string, error) {
 	return pf.DownloadsPath(dl.Filename)
 }
 
 // TargetPath returns the installation target path for the binary.
 // Return an empty string if this download is not installed as a binary.
-func (dl *Download) TargetPath(pf *Platform) string {
+func (dl *Download) TargetPath(pf *Platform) (string, error) {
 	if dl.Binary == "" {
-		return ""
+		return "", nil
 	}
 	return pf.BinPath(dl.Binary)
 }
 
 // DirectoryPath returns the base directory for this download below root.
 // Return an empty string if Directory is not set.
-func (dl *Download) DirectoryPath(root string) string {
+func (dl *Download) DirectoryPath(root string) (string, error) {
 	if dl.Directory == "" {
-		return ""
+		return "", nil
 	}
 	return filepath.Join(root, dl.Directory)
 }
@@ -49,26 +49,29 @@ func (dl *Download) DirectoryPath(root string) string {
 // MarkerPath returns the full marker path below root.
 // Marker is interpreted as a relative path inside Directory.
 // Return an empty string if Marker is not set.
-func (dl *Download) MarkerPath(root string) string {
+func (dl *Download) MarkerPath(root string) (string, error) {
 	if dl.Marker == "" {
-		return ""
+		return "", nil
 	}
 	if dl.Directory == "" {
-		return filepath.Join(root, dl.Marker)
+		return filepath.Join(root, dl.Marker), nil
 	}
-	return filepath.Join(root, dl.Directory, dl.Marker)
+	return filepath.Join(root, dl.Directory, dl.Marker), nil
 }
 
 // MarkerExists reports whether the marker path exists below root.
 func (dl *Download) MarkerExists(root string) (bool, error) {
-	path := dl.MarkerPath(root)
+	path, err := dl.MarkerPath(root)
+	if err != nil {
+		return false, err
+	}
 	if path == "" {
 		return false, nil
 	}
 
 	_, err := os.Stat(path)
 	if err == nil {
-		return true, nil
+		return true, nil // the only positive outcome
 	}
 	if os.IsNotExist(err) {
 		return false, nil
@@ -79,11 +82,14 @@ func (dl *Download) MarkerExists(root string) (bool, error) {
 
 // ExistsLocal reports whether the cached download file exists.
 func (dl *Download) ExistsLocal(pf *Platform) (bool, error) {
-	path := dl.LocalPath(pf)
+	path, err := dl.LocalPath(pf)
+	if err != nil {
+		return false, err
+	}
 
 	_, err := os.Stat(path)
 	if err == nil {
-		return true, nil
+		return true, nil // the only positive outcome
 	}
 	if os.IsNotExist(err) {
 		return false, nil

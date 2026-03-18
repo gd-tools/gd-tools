@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-// JoinPath helps to generate a path from a base and optional elements.
+// JoinPath generates a path from a base and optional elements.
 func JoinPath(base string, paths ...string) string {
 	elems := append([]string{base}, paths...)
 	return filepath.Join(elems...)
