@@ -1,10 +1,8 @@
-package model
+package server
 
 import (
 	"github.com/gd-tools/gd-tools/utils"
 )
-
-const ConfigFile = "config.json"
 
 // ServerModel is the persistent user-facing server configuration.
 // It only contains values that belong to config.json and must not
@@ -32,7 +30,7 @@ type Server struct {
 	// Installed names to avoid collisions.
 	UsedFQDNs []string `json:"used_fqdns"`
 
-	// Application / package versions that are part of the persisted model.
+	// Application / package versions that are part of the persisted server.
 	Roundcube string `json:"roundcube"`
 
 	// External credentials.
@@ -55,4 +53,20 @@ func (srv *Server) FQDN() string {
 		return srv.HostName
 	}
 	return srv.HostName + "." + srv.DomainName
+}
+
+func (srv *Server) FQDNdot() string {
+	return srv.FQDN() + "."
+}
+
+func (srv *Server) DotFQDN() string {
+	return "." + srv.FQDN()
+}
+
+func (srv *Server) RootUser() string {
+	return "root@" + srv.FQDN()
+}
+
+func (srv *Server) Locale() string {
+	return srv.Language + "_" + srv.Region
 }

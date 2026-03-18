@@ -7,12 +7,16 @@ import (
 	"strings"
 )
 
+const (
+	ConfigFile = "config.json"
+)
+
 // EnsureHostDir ensures that the current working directory represents
 // a gd-tools host directory.
 //
 // A host directory is identified by the presence of a config.json file.
 func EnsureHostDir() error {
-	if _, err := os.Stat("config.json"); err == nil {
+	if _, err := os.Stat(ConfigFile); err == nil {
 		return nil
 	}
 	return fmt.Errorf(

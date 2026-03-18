@@ -28,7 +28,7 @@ func TestBuildConfig(t *testing.T) {
 	err := set.Parse([]string{
 		"--swap-size=4G",
 		"--hetzner-volume=4711",
-		"--company=Railduino",
+		"--company=Example GmbH",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -36,10 +36,9 @@ func TestBuildConfig(t *testing.T) {
 
 	c := cli.NewContext(nil, set, nil)
 
-	pf := &platform.Platform{
-		Baseline: &platform.Baseline{
-			Name: "noble-8.3-2.4",
-		},
+	pf, err := platform.LoadPlatform(platform.DefaultBaseline, nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	id := &utils.Identity{
@@ -54,9 +53,9 @@ func TestBuildConfig(t *testing.T) {
 		DMARC:    "v=DMARC1; p=quarantine; pct=100; adkim=s; aspf=s",
 	}
 
-	cfg := buildConfig(c, pf, id, "host00", "railduino.de")
+	cfg := buildConfig(c, pf, id, "host00", "gd-tools.de")
 
-	if cfg.BaselineName != "noble-8.3-2.4" {
+	if cfg.BaselineName != platform.DefaultBaseline {
 		t.Fatalf("unexpected baseline: %q", cfg.BaselineName)
 	}
 
@@ -64,11 +63,11 @@ func TestBuildConfig(t *testing.T) {
 		t.Fatalf("unexpected host name: %q", cfg.HostName)
 	}
 
-	if cfg.DomainName != "railduino.de" {
+	if cfg.DomainName != "gd-tools.de" {
 		t.Fatalf("unexpected domain name: %q", cfg.DomainName)
 	}
 
-	if cfg.Company != "Railduino" {
+	if cfg.Company != "Example GmbH" {
 		t.Fatalf("unexpected company: %q", cfg.Company)
 	}
 
@@ -80,11 +79,11 @@ func TestBuildConfig(t *testing.T) {
 		t.Fatalf("unexpected swap size: %q", cfg.SwapSize)
 	}
 
-	if cfg.FQDN() != "host00.railduino.de" {
+	if cfg.FQDN() != "host00.gd-tools.de" {
 		t.Fatalf("unexpected fqdn: %q", cfg.FQDN())
 	}
 
-	if len(cfg.UsedFQDNs) != 1 || cfg.UsedFQDNs[0] != "host00.railduino.de" {
+	if len(cfg.UsedFQDNs) != 1 || cfg.UsedFQDNs[0] != "host00.gd-tools.de" {
 		t.Fatalf("unexpected used fqdns: %#v", cfg.UsedFQDNs)
 	}
 

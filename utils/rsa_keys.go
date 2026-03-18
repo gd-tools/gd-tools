@@ -1,11 +1,11 @@
-package platform
+package utils
 
 import (
 	"os"
 	"os/exec"
 )
 
-func ProdRSAKeyPair(fqdn string) ([]byte, []byte, error) {
+func RSAKeyPair(fqdn string) ([]byte, []byte, error) {
 	priv, err1 := os.ReadFile("root_id_rsa")
 	publ, err2 := os.ReadFile("root_id_rsa.pub")
 	if err1 == nil && err2 == nil {

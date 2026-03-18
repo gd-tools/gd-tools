@@ -3,6 +3,8 @@ package platform
 import (
 	"net"
 	"path/filepath"
+
+	"github.com/gd-tools/gd-tools/utils"
 )
 
 type Options struct {
@@ -12,8 +14,10 @@ type Options struct {
 	binDir  string
 	runDir  string
 
-	LookupIP      func(host string) ([]net.IP, error)
-	GetRSAKeyPair func(fqdn string) ([]byte, []byte, error)
+	LookupIP   func(host string) ([]net.IP, error)
+	RSAKeyPair func(fqdn string) ([]byte, []byte, error)
+	RunShell   func(commands []string) ([]byte, error)
+	RunCommand func(name string, args ...string) ([]byte, error)
 }
 
 func defaultOptions() *Options {
@@ -24,8 +28,10 @@ func defaultOptions() *Options {
 		binDir:  "/usr/local/bin",
 		runDir:  "/run",
 
-		LookupIP:      net.LookupIP,
-		GetRSAKeyPair: ProdRSAKeyPair,
+		LookupIP:   net.LookupIP,
+		RSAKeyPair: utils.RSAKeyPair,
+		RunShell:   utils.RunShell,
+		RunCommand: utils.RunCommand,
 	}
 }
 

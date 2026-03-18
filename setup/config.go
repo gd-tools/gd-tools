@@ -2,8 +2,8 @@ package setup
 
 import (
 	"github.com/gd-tools/gd-tools/config"
-	"github.com/gd-tools/gd-tools/model"
 	"github.com/gd-tools/gd-tools/platform"
+	"github.com/gd-tools/gd-tools/server"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -11,9 +11,9 @@ import (
 // buildConfig creates the initial server config from CLI flags and identity defaults.
 func buildConfig(c *cli.Context, pf *platform.Platform, id *utils.Identity, host, domain string) config.Config {
 	cfg := config.Config{
-		Verbose:      c.Bool("verbose"),
-		BaselineName: pf.Baseline.Name,
+		Verbose: c.Bool("verbose"),
 	}
+	cfg.BaselineName = pf.Baseline.Name
 
 	// Values for the operating system environment.
 	if c.IsSet("swap-size") {
@@ -74,7 +74,7 @@ func buildConfig(c *cli.Context, pf *platform.Platform, id *utils.Identity, host
 // addMounts adds optional storage mounts from CLI flags.
 func addMounts(cfg *config.Config, c *cli.Context, pf *platform.Platform) {
 	if volume := c.String("hetzner-volume"); volume != "" {
-		cfg.Mounts = append(cfg.Mounts, model.Mount{
+		cfg.Mounts = append(cfg.Mounts, server.Mount{
 			Provider: "hetzner",
 			ID:       volume,
 			Path:     pf.ToolsPath(),

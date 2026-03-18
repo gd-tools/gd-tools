@@ -1,4 +1,4 @@
-package platform
+package utils
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestProdRSAKeyPairCreatesFiles(t *testing.T) {
+func TestRSAKeyPairCreatesFiles(t *testing.T) {
 	t.Helper()
 
 	if _, err := exec.LookPath("ssh-keygen"); err != nil {
@@ -29,7 +29,7 @@ func TestProdRSAKeyPairCreatesFiles(t *testing.T) {
 		}
 	})
 
-	priv, publ, err := ProdRSAKeyPair("example.org")
+	priv, publ, err := RSAKeyPair("example.org")
 	if err != nil {
 		t.Fatalf("ProdRSAKeyPair returned error: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestProdRSAKeyPairCreatesFiles(t *testing.T) {
 	}
 }
 
-func TestProdRSAKeyPairReadsExistingFiles(t *testing.T) {
+func TestRSAKeyPairReadsExistingFiles(t *testing.T) {
 	t.Helper()
 
 	oldWD, err := os.Getwd()
@@ -77,7 +77,7 @@ func TestProdRSAKeyPairReadsExistingFiles(t *testing.T) {
 		t.Fatalf("WriteFile(root_id_rsa.pub) failed: %v", err)
 	}
 
-	priv, publ, err := ProdRSAKeyPair("example.org")
+	priv, publ, err := RSAKeyPair("example.org")
 	if err != nil {
 		t.Fatalf("ProdRSAKeyPair returned error: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestProdRSAKeyPairReadsExistingFiles(t *testing.T) {
 	}
 }
 
-func TestProdRSAKeyPairFailsWithoutPublicKey(t *testing.T) {
+func TestRSAKeyPairFailsWithoutPublicKey(t *testing.T) {
 	t.Helper()
 
 	if _, err := exec.LookPath("ssh-keygen"); err != nil {
@@ -116,7 +116,7 @@ func TestProdRSAKeyPairFailsWithoutPublicKey(t *testing.T) {
 		t.Fatalf("WriteFile(root_id_rsa) failed: %v", err)
 	}
 
-	_, _, err = ProdRSAKeyPair("example.org")
+	_, _, err = RSAKeyPair("example.org")
 	if err == nil {
 		t.Fatal("expected error")
 	}
