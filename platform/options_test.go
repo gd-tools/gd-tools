@@ -3,6 +3,8 @@ package platform
 import (
 	"net"
 	"testing"
+
+	"github.com/gd-tools/gd-tools/utils"
 )
 
 func TestDefaultOptions(t *testing.T) {
@@ -31,9 +33,7 @@ func TestDefaultOptions(t *testing.T) {
 }
 
 func TestJoinPath(t *testing.T) {
-	pf := &Platform{}
-
-	got := pf.joinPath("/var", "gd-tools", "data")
+	got := utils.JoinPath("/var", "gd-tools", "data")
 	want := "/var/gd-tools/data"
 
 	if got != want {

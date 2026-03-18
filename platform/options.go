@@ -14,6 +14,7 @@ type Options struct {
 	runDir  string
 
 	LookupIP   func(host string) ([]net.IP, error)
+	DHParams   func(bits int) ([]byte, error)
 	RSAKeyPair func(fqdn string) ([]byte, []byte, error)
 	RunShell   func(commands []string) ([]byte, error)
 	RunCommand func(name string, args ...string) ([]byte, error)
@@ -28,6 +29,7 @@ func defaultOptions() *Options {
 		runDir:  "/run",
 
 		LookupIP:   net.LookupIP,
+		DHParams:   utils.DHParams,
 		RSAKeyPair: utils.RSAKeyPair,
 		RunShell:   utils.RunShell,
 		RunCommand: utils.RunCommand,
@@ -109,4 +111,17 @@ func (pf *Platform) EtcPhpPath(paths ...string) string {
 // These are the helper functions with side effects.
 func (pf *Platform) RunCommand(name string, args ...string) ([]byte, error) {
 	return pf.options.RunCommand(name, args...)
+}
+
+func (pf *Platform) LookupIP(host string) ([]net.IP, error) {
+	return pf.options.LookupIP(host)
+}
+
+func (pf *Platform) RSAKeyPair(fqdn string) ([]byte, []byte, error) {
+	return pf.options.RSAKeyPair(fqdn)
+}
+
+// RunShell executes a list of shell commands on the local system.
+func (pf *Platform) RunShell(commands []string) ([]byte, error) {
+	return pf.options.RunShell(commands)
 }

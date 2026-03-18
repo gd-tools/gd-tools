@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/gd-tools/gd-tools/config"
-	"github.com/gd-tools/gd-tools/server"
 	"github.com/gd-tools/gd-tools/utils"
 )
 

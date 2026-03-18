@@ -15,8 +15,8 @@ const (
 	DHMinBits    = 2048
 )
 
-// GenerateDHParams returns existing dhparams.pem or generates a new one using openssl.
-func GenerateDHParams(bits int) ([]byte, error) {
+// DHParams returns existing dhparams.pem or generates a new one using openssl.
+func DHParams(bits int) ([]byte, error) {
 	dhBytes, err := os.ReadFile(DHParamsFile)
 	if err == nil && len(dhBytes) > 0 {
 		return dhBytes, nil
@@ -42,17 +42,10 @@ func GenerateDHParams(bits int) ([]byte, error) {
 		}
 		return nil, fmt.Errorf("failed to run openssl dhparam: %w\n%s", err, stderr.String())
 	}
-
 	dhBytes = stdout.Bytes()
 
-	tmp := DHParamsFile + ".tmp"
-
-	if err := os.WriteFile(tmp, dhBytes, 0644); err != nil {
-		return nil, fmt.Errorf("failed to write %s: %w", tmp, err)
-	}
-
-	if err := os.Rename(tmp, DHParamsFile); err != nil {
-		return nil, fmt.Errorf("failed to replace %s: %w", DHParamsFile, err)
+	if err := SaveFile(DHParamsFile, dhBytes); err != nil {
+                return nil, err
 	}
 
 	return dhBytes, nil
