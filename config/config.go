@@ -4,8 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/gd-tools/gd-tools/platform"
-	"github.com/gd-tools/gd-tools/server"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -16,13 +14,13 @@ const (
 
 // Config contains the persistent server plus runtime-only helpers.
 type Config struct {
-	server.Server
-
-	// Runtime environment (contains required Options).
-	Platform *platform.Platform `json:"-"`
+	Server
 
 	// Concrete baseline for this server (Ubuntu version etc.).
-	Baseline *platform.Baseline `json:"-"`
+	Baseline *Baseline `json:"-"`
+
+	// Products - all downloadable assets.
+	Products []Product `json:"-"`
 
 	// Common runtime flags
 	Verbose bool `json:"-"`
@@ -39,7 +37,7 @@ type Config struct {
 
 // ReadConfig loads and initializes a server configuration.
 // Platform and Options can be injected for testing.
-func ReadConfig(c *cli.Context, pf *platform.Platform, opts *platform.Options) (*Config, error) {
+func ReadConfig(c *cli.Context) (*Config, error) {
 	cfg := &Config{}
 
 	// The persistent server configuration must exist, created by 'gdt setup'.
@@ -48,21 +46,10 @@ func ReadConfig(c *cli.Context, pf *platform.Platform, opts *platform.Options) (
 		return nil, err
 	}
 
-	// Load the server platform (necessary for recovery: never use "latest").
-	// LoadPlatform ensures valid options, no need to check again.
-	if pf == nil {
-		pf, err = platform.LoadPlatform(cfg.BaselineName, opts)
-		if err != nil {
-			return nil, err
-		}
-	}
-	cfg.Platform = pf
-
 	// The baseline for this particular server.
-	if err := pf.LoadBaselines(cfg.BaselineName); err != nil {
+	if cfg.Baseline, err = LoadBaseline(cfg.BaselineName); err != nil {
 		return nil, err
 	}
-	cfg.Baseline = pf.Baseline
 
 	if c != nil {
 		cfg.Verbose = c.Bool("verbose")
@@ -79,10 +66,6 @@ func ReadConfig(c *cli.Context, pf *platform.Platform, opts *platform.Options) (
 
 // Save writes the persistent server configuration.
 func (cfg *Config) Save() error {
-	if cfg == nil {
-		return fmt.Errorf("config is nil")
-	}
-
 	return utils.SaveJSON(utils.ConfigFile, &cfg.Server)
 }
 

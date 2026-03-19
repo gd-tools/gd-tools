@@ -1,10 +1,10 @@
-package server
+package config
 
 import (
 	"github.com/gd-tools/gd-tools/utils"
 )
 
-// ServerModel is the persistent user-facing server configuration.
+// Server is the persistent user-facing server configuration.
 // It only contains values that belong to config.json and must not
 // contain runtime-only helpers, flags, or active connections.
 type Server struct {

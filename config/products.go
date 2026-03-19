@@ -1,4 +1,4 @@
-package platform
+package config
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ const ProductsTemplate = "system/products.json"
 type Release struct {
 	Number   string   `json:"number"`
 	Series   string   `json:"series,omitempty"`
-	Download Download `json:"download"`
+	Download utils.Download `json:"download"`
 }
 
 // Product describes a managed application such as Nextcloud or WordPress.
@@ -28,33 +28,31 @@ type Product struct {
 }
 
 // LoadProducts loads the products embedded in the gdt binary.
-func (pf *Platform) LoadProducts() error {
-	data, err := Render(ProductsTemplate, nil)
-	if err != nil {
-		return fmt.Errorf("failed to render %s: %w", ProductsTemplate, err)
+func LoadProducts() ([]Product, error) {
+	var products []Product
+
+	if err := RenderJSON(ProductsTemplate, &products); err != nil {
+		return err
 	}
 
-	if err := json.Unmarshal(data, &pf.Products); err != nil {
-		return fmt.Errorf("failed to unmarshal %s: %w", ProductsTemplate, err)
-	}
-
-	return nil
+	return products
 }
 
 // FindProduct returns one product by name.
-func (pf *Platform) FindProduct(name string) (*Product, error) {
+func FindProduct(name string) (*Product, error) {
 	for i := range pf.Products {
 		if pf.Products[i].Name == name {
 			return &pf.Products[i], nil
 		}
 	}
+
 	return nil, fmt.Errorf("product %q not found", name)
 }
 
 // GetProduct returns one product and one selected release.
 // If num is empty, the default release is used.
-func (pf *Platform) GetProduct(name, num string) (*Product, *Release, error) {
-	pr, err := pf.FindProduct(name)
+func GetProduct(name, num string) (*Product, *Release, error) {
+	pr, err := FindProduct(name)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -225,19 +225,6 @@ func (pf *Platform) SaveJSON(name string, v any) error {
 }
 
 // These are the helper functions with side effects.
-func (pf *Platform) RunCommand(name string, args ...string) ([]byte, error) {
-	if pf == nil {
-		return nil, fmt.Errorf("RunCommand: missing pf")
-	}
-	if pf.options == nil {
-		return nil, fmt.Errorf("RunCommand: missing pf.options")
-	}
-	if pf.options.RunCommand == nil {
-		return nil, fmt.Errorf("RunCommand: missing pf.options.RunCommand")
-	}
-	return pf.options.RunCommand(name, args...)
-}
-
 func (pf *Platform) LookupIP(host string) ([]net.IP, error) {
 	if pf == nil {
 		return nil, fmt.Errorf("LookupIP: missing pf")
@@ -276,4 +263,17 @@ func (pf *Platform) RunShell(commands []string) ([]byte, error) {
 		return nil, fmt.Errorf("RunShell: missing pf.options.RunShell")
 	}
 	return pf.options.RunShell(commands)
+}
+
+func (pf *Platform) RunCommand(name string, args ...string) ([]byte, error) {
+	if pf == nil {
+		return nil, fmt.Errorf("RunCommand: missing pf")
+	}
+	if pf.options == nil {
+		return nil, fmt.Errorf("RunCommand: missing pf.options")
+	}
+	if pf.options.RunCommand == nil {
+		return nil, fmt.Errorf("RunCommand: missing pf.options.RunCommand")
+	}
+	return pf.options.RunCommand(name, args...)
 }

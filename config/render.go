@@ -1,9 +1,11 @@
-package platform
+package config
 
 import (
 	"bufio"
 	"bytes"
 	"embed"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"text/template"
 )
@@ -16,7 +18,7 @@ func load(name string) ([]byte, error) {
 }
 
 // Render loads a template from the gdt binary.
-func Render(name string, data interface{}) ([]byte, error) {
+func Render(name string, data any) ([]byte, error) {
 	content, err := load(name)
 	if err != nil {
 		return nil, err
@@ -37,7 +39,20 @@ func Render(name string, data interface{}) ([]byte, error) {
 	return result.Bytes(), nil
 }
 
-func RenderSQL(name string, data interface{}) ([]string, error) {
+func RenderJSON(name string, data any) error {
+	content, err := load(name)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(content, data); err != nil {
+		return fmt.Errorf("failed to unmarshal %s: %w", name, err)
+	}
+
+	return nil
+}
+
+func RenderSQL(name string, data any) ([]string, error) {
 	content, err := Render(name, data)
 	if err != nil {
 		return nil, err
@@ -87,7 +102,7 @@ func normalizeSQL(sql string) string {
 	return strings.Join(words, " ")
 }
 
-func RenderLines(name, comment string, data interface{}) ([]string, error) {
+func RenderLines(name, comment string, data any) ([]string, error) {
 	content, err := Render(name, data)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-package server
+package config
 
 // Mount describes a storage volume managed by gd-tools.
 type Mount struct {

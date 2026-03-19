@@ -1,4 +1,4 @@
-package platform
+package utils
 
 import (
 	"crypto/md5"
@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-// Download describes a downloadable asset, e.g. a zip archive or binary.
+// Download describes a downloadable asset, e.g. zip archive or binary.
 type Download struct {
 	DownloadURL string `json:"download_url"`
 	Filename    string `json:"filename"`
@@ -21,29 +21,6 @@ type Download struct {
 	MD5         string `json:"md5"`
 	SHA256      string `json:"sha256"`
 	SHA512      string `json:"sha512"`
-}
-
-// LocalPath returns the local cached download path.
-func (dl *Download) LocalPath(pf *Platform) (string, error) {
-	return pf.DownloadsPath(dl.Filename)
-}
-
-// TargetPath returns the installation target path for the binary.
-// Return an empty string if this download is not installed as a binary.
-func (dl *Download) TargetPath(pf *Platform) (string, error) {
-	if dl.Binary == "" {
-		return "", nil
-	}
-	return pf.BinPath(dl.Binary)
-}
-
-// DirectoryPath returns the base directory for this download below root.
-// Return an empty string if Directory is not set.
-func (dl *Download) DirectoryPath(root string) (string, error) {
-	if dl.Directory == "" {
-		return "", nil
-	}
-	return filepath.Join(root, dl.Directory)
 }
 
 // MarkerPath returns the full marker path below root.
@@ -80,31 +57,8 @@ func (dl *Download) MarkerExists(root string) (bool, error) {
 	return false, err
 }
 
-// ExistsLocal reports whether the cached download file exists.
-func (dl *Download) ExistsLocal(pf *Platform) (bool, error) {
-	path, err := dl.LocalPath(pf)
-	if err != nil {
-		return false, err
-	}
-
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil // the only positive outcome
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-
-	return false, err
-}
-
-// VerifyLocal verifies the cached local file against the configured hashes.
-func (dl *Download) VerifyLocal(pf *Platform) error {
-	return dl.VerifyFile(dl.LocalPath(pf))
-}
-
-// VerifyFile verifies one local file against the configured hashes.
-func (dl *Download) VerifyFile(path string) error {
+// Verify verifies one local file against the configured hashes.
+func (dl *Download) Verify(path string) error {
 	md5sum, sha256sum, sha512sum, err := Hashes(path)
 	if err != nil {
 		return err
