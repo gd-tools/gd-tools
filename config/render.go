@@ -39,6 +39,7 @@ func Render(name string, data any) ([]byte, error) {
 	return result.Bytes(), nil
 }
 
+// RenderJSON loads a JSON template from the gdt binary.
 func RenderJSON(name string, data any) error {
 	content, err := load(name)
 	if err != nil {
@@ -52,6 +53,7 @@ func RenderJSON(name string, data any) error {
 	return nil
 }
 
+// RenderSQL loads SQL code from the gdt binary.
 func RenderSQL(name string, data any) ([]string, error) {
 	content, err := Render(name, data)
 	if err != nil {
@@ -102,7 +104,9 @@ func normalizeSQL(sql string) string {
 	return strings.Join(words, " ")
 }
 
-func RenderLines(name, comment string, data any) ([]string, error) {
+// RenderList loads a textual list from the gdt binary.
+// Where comment is usually something like '#'.
+func RenderList(name, comment string, data any) ([]string, error) {
 	content, err := Render(name, data)
 	if err != nil {
 		return nil, err
