@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestGenerateDHParamsExisting(t *testing.T) {
+func TestDHParamsExisting(t *testing.T) {
 	dir := t.TempDir()
 
 	oldwd, err := os.Getwd()
@@ -20,13 +20,13 @@ func TestGenerateDHParamsExisting(t *testing.T) {
 
 	expected := []byte("TEST_DH_PARAMS")
 
-	if err := os.WriteFile(DHParamsFile, expected, 0644); err != nil {
+	if err := os.WriteFile(DHParamsFile, expected, 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	data, err := GenerateDHParams(4096)
+	data, err := DHParams(4096)
 	if err != nil {
-		t.Fatalf("GenerateDHParams failed: %v", err)
+		t.Fatalf("DHParams failed: %v", err)
 	}
 
 	if string(data) != string(expected) {

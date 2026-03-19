@@ -45,7 +45,7 @@ func DHParams(bits int) ([]byte, error) {
 	dhBytes = stdout.Bytes()
 
 	if err := SaveFile(DHParamsFile, dhBytes); err != nil {
-                return nil, err
+		return nil, err
 	}
 
 	return dhBytes, nil

@@ -7,6 +7,9 @@ import (
 // Server is the persistent user-facing server configuration.
 // It only contains values that belong to config.json and must not
 // contain runtime-only helpers, flags, or active connections.
+//
+// WARNING: this struct may contain sensitive data (API tokens).
+// It must never be deployed to production systems.
 type Server struct {
 	// Baseline selected for this server.
 	BaselineName string `json:"baseline"`
@@ -15,22 +18,22 @@ type Server struct {
 	utils.Identity
 
 	// Host identity.
-	HostName   string `json:"host_name"`   // host part of FQDN
-	DomainName string `json:"domain_name"` // domain part of FQDN
+	HostName   string `json:"host_name"`
+	DomainName string `json:"domain_name"`
 
 	// Network addresses.
-	IPv4Addr string `json:"ipv4_addr"` // must be set manually
-	IPv6Addr string `json:"ipv6_addr"` // must be set manually
+	IPv4Addr string `json:"ipv4_addr"`
+	IPv6Addr string `json:"ipv6_addr"`
 
 	// Basic host settings.
-	SwapSize string    `json:"swap_size,omitempty"` // e.g. "500M", "2G", or "" for 0
+	SwapSize string    `json:"swap_size,omitempty"`
 	Mounts   MountList `json:"mounts,omitempty"`
 	Firewall []string  `json:"firewall,omitempty"`
 
 	// Installed names to avoid collisions.
 	UsedFQDNs []string `json:"used_fqdns"`
 
-	// Application / package versions that are part of the persisted server.
+	// Application / package versions (system modules).
 	Roundcube string `json:"roundcube"`
 
 	// External credentials.
@@ -56,17 +59,41 @@ func (srv *Server) FQDN() string {
 }
 
 func (srv *Server) FQDNdot() string {
-	return srv.FQDN() + "."
+	fqdn := srv.FQDN()
+	if fqdn == "" {
+		return ""
+	}
+	return fqdn + "."
 }
 
 func (srv *Server) DotFQDN() string {
-	return "." + srv.FQDN()
+	fqdn := srv.FQDN()
+	if fqdn == "" {
+		return ""
+	}
+	return "." + fqdn
 }
 
 func (srv *Server) RootUser() string {
-	return "root@" + srv.FQDN()
+	if srv == nil {
+		return ""
+	}
+	fqdn := srv.FQDN()
+	if fqdn == "" {
+		return "root"
+	}
+	return "root@" + fqdn
 }
 
 func (srv *Server) Locale() string {
+	if srv == nil {
+		return ""
+	}
+	if srv.Language == "" {
+		return srv.Region
+	}
+	if srv.Region == "" {
+		return srv.Language
+	}
 	return srv.Language + "_" + srv.Region
 }

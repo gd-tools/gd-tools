@@ -40,14 +40,14 @@ func Render(name string, data any) ([]byte, error) {
 }
 
 // RenderJSON loads a JSON template from the gdt binary.
-func RenderJSON(name string, data any) error {
-	content, err := load(name)
+func RenderJSON(name string, data any, v any) error {
+	content, err := Render(name, data)
 	if err != nil {
 		return err
 	}
 
-	if err := json.Unmarshal(content, data); err != nil {
-		return fmt.Errorf("failed to unmarshal %s: %w", name, err)
+	if err := json.Unmarshal(content, v); err != nil {
+		return fmt.Errorf("unmarshal rendered json %s: %w", name, err)
 	}
 
 	return nil

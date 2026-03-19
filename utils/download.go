@@ -26,22 +26,19 @@ type Download struct {
 // MarkerPath returns the full marker path below root.
 // Marker is interpreted as a relative path inside Directory.
 // Return an empty string if Marker is not set.
-func (dl *Download) MarkerPath(root string) (string, error) {
+func (dl *Download) MarkerPath(root string) string {
 	if dl.Marker == "" {
-		return "", nil
+		return ""
 	}
 	if dl.Directory == "" {
-		return filepath.Join(root, dl.Marker), nil
+		return filepath.Join(root, dl.Marker)
 	}
-	return filepath.Join(root, dl.Directory, dl.Marker), nil
+	return filepath.Join(root, dl.Directory, dl.Marker)
 }
 
 // MarkerExists reports whether the marker path exists below root.
 func (dl *Download) MarkerExists(root string) (bool, error) {
-	path, err := dl.MarkerPath(root)
-	if err != nil {
-		return false, err
-	}
+	path := dl.MarkerPath(root)
 	if path == "" {
 		return false, nil
 	}
@@ -57,7 +54,7 @@ func (dl *Download) MarkerExists(root string) (bool, error) {
 	return false, err
 }
 
-// Verify verifies one local file against the configured hashes.
+// Verify verifies the local file against the configured hashes.
 func (dl *Download) Verify(path string) error {
 	md5sum, sha256sum, sha512sum, err := Hashes(path)
 	if err != nil {

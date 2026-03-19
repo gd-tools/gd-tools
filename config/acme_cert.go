@@ -2,7 +2,6 @@ package config
 
 import (
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -16,18 +15,9 @@ import (
 )
 
 const (
-	ACME_Cert_Dir    = "acme-certs"
-	ACME_Account_Key = "../acme_account.key"
-	CertInfoFile     = "cert_info.json"
+	ACMECertDir    = "acme-certs"
+	ACMEAccountKey = "../acme_account.key"
 )
-
-type CertInfo struct {
-	DNS_Key    string    `json:"dns_key"`
-	Domain     string    `json:"domain"`
-	SANList    []string  `json:"san_list"`
-	IssuedAt   time.Time `json:"issued_at"`
-	ValidUntil time.Time `json:"valid_until"`
-}
 
 func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 	if domain == "" {
@@ -36,62 +26,64 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 	force := cfg.Force
 
 	sans = UniqueSortedStrings(sans)
-	domains := append([]string{domain}, sans...)
-	baseDir := filepath.Join(ACME_Cert_Dir, domain)
+	wantDomains := UniqueSortedStrings(append([]string{domain}, sans...))
 
-	var certInfo CertInfo
-	certInfoPath := filepath.Join(baseDir, CertInfoFile)
-	content, err := os.ReadFile(certInfoPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			cfg.Sayf("%s not found, requesting new", certInfoPath)
-			force = true
-		} else {
-			return fmt.Errorf("failed to read %s: %w", certInfoPath, err)
-		}
-	} else {
-		if err := json.Unmarshal(content, &certInfo); err != nil {
-			return fmt.Errorf("failed to unmarshal %s: %w", certInfoPath, err)
-		}
-		if time.Until(certInfo.ValidUntil) <= 30*24*time.Hour {
-			force = true
-		}
-	}
+	baseDir := filepath.Join(ACMECertDir, domain)
+	fullchainPath := filepath.Join(baseDir, "fullchain.pem")
+	privkeyPath := filepath.Join(baseDir, "privkey.pem")
+	issuerPath := filepath.Join(baseDir, "issuer.pem")
 
 	if !force {
-		fullchain, err1 := os.ReadFile(filepath.Join(baseDir, "fullchain.pem"))
-		_, err2 := os.ReadFile(filepath.Join(baseDir, "privkey.pem"))
-		_, err3 := os.ReadFile(filepath.Join(baseDir, "issuer.pem"))
+		fullchain, err1 := os.ReadFile(fullchainPath)
+		_, err2 := os.ReadFile(privkeyPath)
+		_, err3 := os.ReadFile(issuerPath)
+
 		if err1 == nil && err2 == nil && err3 == nil {
-			sanList, err := ExtractSANs(fullchain)
+			validUntil, err := ReadValidUntil(fullchain)
 			if err != nil {
 				return err
 			}
-			cfg.Sayf("✅ certificate: %s", sanList)
-			cfg.PushCerts()
-			return nil
+
+			gotDomains, err := ExtractSANList(fullchain)
+			if err != nil {
+				return err
+			}
+
+			if !EqualStrings(gotDomains, wantDomains) {
+				cfg.Sayf("certificate SANs changed, requesting new")
+				force = true
+			} else if time.Until(validUntil) <= 30*24*time.Hour {
+				cfg.Sayf("certificate expires soon on %s, requesting new", validUntil.Format("2006-01-02"))
+				force = true
+			} else {
+				cfg.Sayf("certificate valid until %s: %s",
+					validUntil.Format("2006-01-02"),
+					strings.Join(gotDomains, " "),
+				)
+				return nil
+			}
+		} else {
+			force = true
 		}
 	}
 
-	key, err := acme.GetPrivateKey(ACME_Account_Key)
+	key, err := acme.GetPrivateKey(ACMEAccountKey)
 	if err != nil {
 		return err
 	}
 
 	var resource *certificate.Resource
-	provider := ""
+
 	if cfg.HetznerToken != "" {
-		provider = "Hetzner"
 		os.Setenv("HETZNER_API_TOKEN", cfg.HetznerToken)
 		defer os.Unsetenv("HETZNER_API_TOKEN")
-		resource, err = acme.GetHetznerCertificate(domains, cfg.SysAdmin, key)
+		resource, err = acme.GetHetznerCertificate(wantDomains, cfg.SysAdmin, key)
 	} else if cfg.IonosToken != "" {
-		provider = "IONOS"
 		os.Setenv("IONOS_API_KEY", cfg.IonosToken)
 		defer os.Unsetenv("IONOS_API_KEY")
-		resource, err = acme.GetIonosCertificate(domains, cfg.SysAdmin, key)
+		resource, err = acme.GetIonosCertificate(wantDomains, cfg.SysAdmin, key)
 	}
-	// add other providers here
+	// add other providers here TODO Cloudflare
 
 	if err != nil {
 		return err
@@ -119,41 +111,32 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 		return err
 	}
 
-	issuedAt := time.Now().UTC().Round(0)
 	validUntil, err := ReadValidUntil(resource.Certificate)
 	if err != nil {
 		return err
 	}
 
-	certInfo = CertInfo{
-		DNS_Key:    provider,
-		Domain:     domain,
-		SANList:    sans,
-		IssuedAt:   issuedAt,
-		ValidUntil: validUntil,
-	}
-
-	content, err = json.MarshalIndent(certInfo, "", "  ")
+	gotDomains, err := ExtractSANList(resource.Certificate)
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", certInfoPath, err)
-	}
-	if err := os.WriteFile(certInfoPath, content, 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", certInfoPath, err)
+		return err
 	}
 
-	cfg.PushCerts()
+	cfg.Sayf("certificate valid until %s: %s",
+		validUntil.Format("2006-01-02"),
+		strings.Join(gotDomains, " "),
+	)
 
 	return nil
 }
 
-func ExtractSANs(fullchain []byte) (string, error) {
+func ExtractSANList(fullchain []byte) ([]string, error) {
 	var certBlock *pem.Block
-	var rest = fullchain
+	rest := fullchain
 
 	for {
 		certBlock, rest = pem.Decode(rest)
 		if certBlock == nil {
-			return "", fmt.Errorf("no certificate found in fullchain")
+			return nil, fmt.Errorf("no certificate found in fullchain")
 		}
 		if certBlock.Type == "CERTIFICATE" {
 			break
@@ -162,15 +145,32 @@ func ExtractSANs(fullchain []byte) (string, error) {
 
 	cert, err := x509.ParseCertificate(certBlock.Bytes)
 	if err != nil {
-		return "", fmt.Errorf("unable to parse certificate: %w", err)
+		return nil, fmt.Errorf("unable to parse certificate: %w", err)
 	}
 
-	return strings.Join(cert.DNSNames, " "), nil
+	names := make([]string, 0, len(cert.DNSNames)+1)
+	if cert.Subject.CommonName != "" {
+		names = append(names, cert.Subject.CommonName)
+	}
+	names = append(names, cert.DNSNames...)
+
+	return UniqueSortedStrings(names), nil
+}
+
+func ExtractSANs(fullchain []byte) (string, error) {
+	names, err := ExtractSANList(fullchain)
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(names, " "), nil
 }
 
 func UniqueSortedStrings(in []string) []string {
 	m := make(map[string]struct{}, len(in))
 	for _, s := range in {
+		if s == "" {
+			continue
+		}
 		m[s] = struct{}{}
 	}
 
@@ -181,6 +181,18 @@ func UniqueSortedStrings(in []string) []string {
 
 	sort.Strings(out)
 	return out
+}
+
+func EqualStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func ReadValidUntil(pemBytes []byte) (time.Time, error) {

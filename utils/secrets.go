@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -17,13 +16,13 @@ import (
 )
 
 var (
-	SecretsFile  = "secrets.json"
-	MailUserName = "mailuser"
+	SecretsFile   = "secrets.json"
+	MailUserScope = "mailuser"
 )
 
 type Secret struct {
-	Domain string `json:"domain"`
-	User   string `json:"user"`
+	Scope  string `json:"scope"`
+	Name   string `json:"name"`
 	Input  string `json:"input"`
 	Output string `json:"output"`
 }
@@ -32,6 +31,8 @@ type SecretList struct {
 	Secrets []Secret `json:"entries"`
 }
 
+// GenerateSecret generates a derived secret based on the given mode.
+// Supported modes are "bcrypt" (default) and "pbkdf2".
 func GenerateSecret(key, mode string) (string, error) {
 	switch mode {
 	case "bcrypt", "":
@@ -43,9 +44,10 @@ func GenerateSecret(key, mode string) (string, error) {
 	return "", fmt.Errorf("unknown secret mode %s", mode)
 }
 
+// GenerateBcrypt creates a bcrypt hash from the given password.
 func GenerateBcrypt(password string) (string, error) {
 	if password == "" {
-		return "", fmt.Errorf("empty passwords are not allowed")
+		return "", fmt.Errorf("empty passwords in GenerateBcrypt")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -56,7 +58,14 @@ func GenerateBcrypt(password string) (string, error) {
 	return string(hash), nil
 }
 
+// GeneratePBKDF2 derives a key using PBKDF2 with a random salt and Blake2b as hash function.
+// The result is encoded using zbase32 and formatted as "$1$salt$key".
+// Used for systems that require PBKDF2-style password hashing (e.g. Borg Backup).
 func GeneratePBKDF2(password string) (string, error) {
+	if password == "" {
+		return "", fmt.Errorf("empty passwords in GeneratePBKDF2")
+	}
+
 	salt := make([]byte, 20)
 	if _, err := rand.Read(salt); err != nil {
 		return "", err
@@ -70,6 +79,8 @@ func GeneratePBKDF2(password string) (string, error) {
 	), nil
 }
 
+// LoadSecrets loads secrets from SecretsFile.
+// Returns an empty list if the file does not exist.
 func LoadSecrets() (*SecretList, error) {
 	var list SecretList
 
@@ -77,9 +88,8 @@ func LoadSecrets() (*SecretList, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &list, nil
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 
 	if err := json.Unmarshal(content, &list); err != nil {
@@ -89,34 +99,22 @@ func LoadSecrets() (*SecretList, error) {
 	return &list, nil
 }
 
+// Save writes the secrets to SecretsFile, sorted by scope and name.
 func (list *SecretList) Save() error {
 	sort.Slice(list.Secrets, func(i, j int) bool {
-		if list.Secrets[i].Domain == list.Secrets[j].Domain {
-			return list.Secrets[i].User < list.Secrets[j].User
+		if list.Secrets[i].Scope == list.Secrets[j].Scope {
+			return list.Secrets[i].Name < list.Secrets[j].Name
 		}
-		return list.Secrets[i].Domain < list.Secrets[j].Domain
+		return list.Secrets[i].Scope < list.Secrets[j].Scope
 	})
 
-	content, err := json.MarshalIndent(list, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", SecretsFile, err)
-	}
-
-	existing, err := os.ReadFile(SecretsFile)
-	if err == nil && bytes.Equal(existing, content) {
-		return nil
-	}
-
-	if err := os.WriteFile(SecretsFile, content, 0600); err != nil {
-		return fmt.Errorf("failed to write %s: %w", SecretsFile, err)
-	}
-
-	return nil
+	return SaveJSON(SecretsFile, list)
 }
 
-func (list *SecretList) Get(domain, user string) *Secret {
+// Get returns the secret entry for the given scope and name, or nil if not found.
+func (list *SecretList) Get(scope, name string) *Secret {
 	for i := range list.Secrets {
-		if list.Secrets[i].Domain == domain && list.Secrets[i].User == user {
+		if list.Secrets[i].Scope == scope && list.Secrets[i].Name == name {
 			return &list.Secrets[i]
 		}
 	}
@@ -124,9 +122,15 @@ func (list *SecretList) Get(domain, user string) *Secret {
 	return nil
 }
 
+// SetMailUser ensures a mail user entry using bcrypt hashing.
+// If password is empty, a random password is generated.
 func (list *SecretList) SetMailUser(address, password string) (string, string, error) {
 	if password == "" {
-		password, _ = CreatePassword(20)
+		newPswd, err := CreatePassword(20)
+		if err != nil {
+			return "", "", err
+		}
+		password = newPswd
 	}
 
 	output, err := GenerateSecret(password, "bcrypt")
@@ -134,23 +138,25 @@ func (list *SecretList) SetMailUser(address, password string) (string, string, e
 		return "", "", err
 	}
 
-	if err := list.Set(MailUserName, address, password, output); err != nil {
+	if err := list.Set(MailUserScope, address, password, output); err != nil {
 		return "", "", err
 	}
 
 	return password, output, nil
 }
 
-func (list *SecretList) Set(domain, user, input, output string) error {
-	if entry := list.Get(domain, user); entry != nil {
+// Set creates or updates a secret entry and persists it.
+// Existing entries are only updated if the input value changes.
+func (list *SecretList) Set(scope, name, input, output string) error {
+	if entry := list.Get(scope, name); entry != nil {
 		if entry.Input != input {
 			entry.Input = input
 			entry.Output = output
 		}
 	} else {
 		entry := Secret{
-			Domain: domain,
-			User:   user,
+			Scope:  scope,
+			Name:   name,
 			Input:  input,
 			Output: output,
 		}
@@ -160,6 +166,7 @@ func (list *SecretList) Set(domain, user, input, output string) error {
 	return list.Save()
 }
 
+// CreatePassword creates a random password without visually ambiguous characters.
 func CreatePassword(length int) (string, error) {
 	charset := "abcdefghijkmnopqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ0123456789"
 
@@ -174,13 +181,16 @@ func CreatePassword(length int) (string, error) {
 	return string(pass), nil
 }
 
-func FetchPassword(length int, domain, user string) (string, error) {
+// EnsurePassword returns a stored password or creates and stores a new one.
+// The returned value is always the Output field of the entry.
+// Used e.g. for common Postfix, Dovecot and Roundcube database access.
+func EnsurePassword(length int, scope, name string) (string, error) {
 	list, err := LoadSecrets()
 	if err != nil {
 		return "", err
 	}
 
-	if entry := list.Get(domain, user); entry != nil {
+	if entry := list.Get(scope, name); entry != nil {
 		return entry.Output, nil
 	}
 
@@ -189,7 +199,7 @@ func FetchPassword(length int, domain, user string) (string, error) {
 		return "", err
 	}
 
-	if err := list.Set(domain, user, "", password); err != nil {
+	if err := list.Set(scope, name, "", password); err != nil {
 		return "", err
 	}
 

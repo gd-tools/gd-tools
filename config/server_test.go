@@ -3,40 +3,54 @@ package config
 import "testing"
 
 func TestServerFQDN(t *testing.T) {
-	srv := &Server{
-		HostName:   "host00",
+	s := &Server{
+		HostName:   "host",
 		DomainName: "example.org",
 	}
 
-	if got := srv.FQDN(); got != "host00.example.org" {
-		t.Fatalf("unexpected fqdn: %q", got)
+	if got := s.FQDN(); got != "host.example.org" {
+		t.Fatalf("got %q", got)
 	}
 }
 
-func TestServerFQDNHostOnly(t *testing.T) {
-	srv := &Server{
-		HostName: "host00",
-	}
-
-	if got := srv.FQDN(); got != "host00" {
-		t.Fatalf("unexpected fqdn: %q", got)
-	}
-}
-
-func TestServerFQDNDomainOnly(t *testing.T) {
-	srv := &Server{
+func TestServerFQDNVariants(t *testing.T) {
+	s := &Server{
+		HostName:   "host",
 		DomainName: "example.org",
 	}
 
-	if got := srv.FQDN(); got != "example.org" {
-		t.Fatalf("unexpected fqdn: %q", got)
+	if s.FQDNdot() != "host.example.org." {
+		t.Fatal("FQDNdot failed")
+	}
+	if s.DotFQDN() != ".host.example.org" {
+		t.Fatal("DotFQDN failed")
 	}
 }
 
-func TestServerFQDNNil(t *testing.T) {
-	var srv *Server
+func TestServerRootUser(t *testing.T) {
+	s := &Server{
+		HostName:   "host",
+		DomainName: "example.org",
+	}
 
-	if got := srv.FQDN(); got != "" {
-		t.Fatalf("unexpected fqdn: %q", got)
+	if got := s.RootUser(); got != "root@host.example.org" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestServerLocale(t *testing.T) {
+	s := &Server{}
+	if s.Locale() != "" {
+		t.Fatal("expected empty locale")
+	}
+
+	s.Language = "de"
+	if s.Locale() != "de" {
+		t.Fatal("language only failed")
+	}
+
+	s.Region = "DE"
+	if s.Locale() != "de_DE" {
+		t.Fatal("full locale failed")
 	}
 }

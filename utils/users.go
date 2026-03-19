@@ -82,13 +82,5 @@ func SaveUserIDs(newUser UserID) error {
 		newList = append(newList, userMap[name])
 	}
 
-	content, err := json.MarshalIndent(newList, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal %s: %w", UserIDsFile, err)
-	}
-	if err := os.WriteFile(UserIDsFile, content, 0o644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", UserIDsFile, err)
-	}
-
-	return nil
+	return SaveJSON(UserIDsFile, newList)
 }
