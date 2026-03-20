@@ -67,7 +67,7 @@ func LoadBaseline(name string) (*Baseline, error) {
 // Validate baseline, just some basic checks.
 func (bl *Baseline) Validate() error {
 	if bl == nil {
-		return fmt.Errorf("baseline is nil")
+		return fmt.Errorf("Validate: baseline is nil")
 	}
 	if bl.Name == "" {
 		return fmt.Errorf("found baseline without name")
@@ -90,37 +90,37 @@ func (bl *Baseline) Validate() error {
 
 // Info returns formatted information for the baseline.
 func (bl *Baseline) Info() []string {
+	var buf utils.LineBuffer
+
 	if bl == nil {
-		return nil
+		return buf.Lines()
 	}
 
-	var lb utils.LineBuffer
-
-	lb.Addf("Baseline: %s", bl.Name)
+	buf.Addf("Baseline: %s", bl.Name)
 
 	if bl.Ubuntu != "" {
-		lb.Addf("Ubuntu:   %s", bl.Ubuntu)
+		buf.Addf("Ubuntu:   %s", bl.Ubuntu)
 	}
 	if bl.PHP != "" {
-		lb.Addf("PHP:      %s", bl.PHP)
+		buf.Addf("PHP:      %s", bl.PHP)
 	}
 	if bl.Dovecot != "" {
-		lb.Addf("Dovecot:  %s", bl.Dovecot)
+		buf.Addf("Dovecot:  %s", bl.Dovecot)
 	}
 
 	if len(bl.Repos) > 0 {
-		lb.Add("Repositories:")
+		buf.Add("Repositories:")
 		for _, repo := range bl.Repos {
-			lb.Addf("  - %s", repo)
+			buf.Addf("  - %s", repo)
 		}
 	}
 
 	if len(bl.Packages) > 0 {
-		lb.Add("Packages:")
+		buf.Add("Packages:")
 		for _, pkg := range bl.Packages {
-			lb.Addf("  - %s", pkg)
+			buf.Addf("  - %s", pkg)
 		}
 	}
 
-	return lb.Lines()
+	return buf.Lines()
 }

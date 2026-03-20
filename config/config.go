@@ -14,6 +14,7 @@ const (
 
 // Config contains the persistent server plus runtime-only helpers.
 type Config struct {
+	// Persistent production server configuration.
 	Server
 
 	// Concrete baseline for this server (Ubuntu version etc.).
@@ -28,6 +29,7 @@ type Config struct {
 	Delete  bool `json:"-"`
 	SkipDNS bool `json:"-"`
 	SkipMX  bool `json:"-"`
+	logger  *utils.Logger
 
 	// Connection to the production server
 	Port    string    `json:"-"`
@@ -47,7 +49,8 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 	}
 
 	// The baseline for this particular server.
-	if cfg.Baseline, err = LoadBaseline(cfg.BaselineName); err != nil {
+	cfg.Baseline, err = LoadBaseline(cfg.BaselineName)
+	if err != nil {
 		return nil, err
 	}
 
@@ -67,6 +70,43 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 // Save writes the persistent server configuration.
 func (cfg *Config) Save() error {
 	return utils.SaveJSON(utils.ConfigFile, &cfg.Server)
+}
+
+// Logging outout, controlled by verbosity.
+func (cfg *Config) Info(args ...any) {
+	if cfg != nil && cfg.Logger != nil {
+		cfg.Logger.Info(args...)
+	}
+}
+
+func (cfg *Config) Infof(fmt string, args ...any) {
+	if cfg != nil && cfg.Logger != nil {
+		cfg.Logger.Infof(fmt, args...)
+	}
+}
+
+func (cfg *Config) Debug(args ...any) {
+	if cfg != nil && cfg.Logger != nil && cfg.Verbose {
+		cfg.Logger.Debug(args...)
+	}
+}
+
+func (cfg *Config) Debugf(fmt string, args ...any) {
+	if cfg != nil && cfg.Logger != nil && cfg.Verbose {
+		cfg.Logger.Debugf(fmt, args...)
+	}
+}
+
+func (cfg *Config) Error(args ...any) {
+	if cfg != nil && cfg.Logger != nil {
+		cfg.Logger.Error(args...)
+	}
+}
+
+func (cfg *Config) Errorf(fmt string, args ...any) {
+	if cfg != nil && cfg.Logger != nil {
+		cfg.Logger.Errorf(fmt, args...)
+	}
 }
 
 func (cfg *Config) RsyncFlags() string {

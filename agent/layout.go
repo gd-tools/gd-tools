@@ -1,11 +1,8 @@
-package config
+package agent
 
 import (
 	"fmt"
 	"net"
-
-	"github.com/gd-tools/gd-tools/platform"
-	"github.com/gd-tools/gd-tools/utils"
 )
 
 // These paths are fundamental, can be faked for tests.

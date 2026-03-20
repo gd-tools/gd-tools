@@ -11,8 +11,8 @@ const ProductsTemplate = "system/products.json"
 
 // Release describes one specific release entry for a product.
 type Release struct {
-	Number   string   `json:"number"`
-	Series   string   `json:"series,omitempty"`
+	Number   string         `json:"number"`
+	Series   string         `json:"series,omitempty"`
 	Download utils.Download `json:"download"`
 }
 

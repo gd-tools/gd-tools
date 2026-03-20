@@ -19,6 +19,10 @@ const (
 	ACMEAccountKey = "../acme_account.key"
 )
 
+var (
+	RenewalTime = 30 * 24 * time.Hour
+)
+
 func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 	if domain == "" {
 		return fmt.Errorf("missing domain in certificate request")
@@ -33,6 +37,7 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 	privkeyPath := filepath.Join(baseDir, "privkey.pem")
 	issuerPath := filepath.Join(baseDir, "issuer.pem")
 
+	// Issue new certificate also if expiry is near or SANs have changed.
 	if !force {
 		fullchain, err1 := os.ReadFile(fullchainPath)
 		_, err2 := os.ReadFile(privkeyPath)
