@@ -14,6 +14,17 @@ func JoinPath(base string, paths ...string) string {
 	return filepath.Join(elems...)
 }
 
+// LoadFile provides a wrapper, can be replaced for testing.
+// No fmt.Errorf, so callers can check for os.IsNotExist().
+func LoadFile(name string) ([]byte, error) {
+	data, err := os.ReadFile(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
 // LoadJSON reads a JSON file into the provided struct or slice.
 func LoadJSON(name string, v any) error {
 	data, err := os.ReadFile(name)

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+
+	"github.com/gd-tools/gd-tools/utils"
 )
 
 const (
@@ -39,7 +41,7 @@ func (cfg *Config) EnsureCA() error {
 	}
 
 	if ok := checkFile(CaKeyName); !ok {
-		if _, err := cfg.RunCommand(
+		if _, err := utils.RunCommand(
 			"openssl",
 			"genrsa",
 			"-out", CaKeyName,

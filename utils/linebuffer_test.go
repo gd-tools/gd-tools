@@ -18,6 +18,19 @@ func TestLineBufferAddInsertAppend(t *testing.T) {
 	}
 }
 
+func TestLineBufferContains(t *testing.T) {
+	var buf LineBuffer
+
+	buf.Append("a", "b")
+
+	if !buf.Contains("a") {
+		t.Fatal("expected buffer to contain a")
+	}
+	if buf.Contains("x") {
+		t.Fatal("did not expect buffer to contain x")
+	}
+}
+
 func TestLineBufferEnsure(t *testing.T) {
 	var buf LineBuffer
 
@@ -84,6 +97,42 @@ func TestLineBufferNormalize(t *testing.T) {
 	buf.Append("b", "", "a", "b", "c", "a")
 
 	buf.Normalize()
+
+	want := []string{"a", "b", "c"}
+	if !reflect.DeepEqual(buf.Lines(), want) {
+		t.Fatalf("unexpected lines: got %v want %v", buf.Lines(), want)
+	}
+}
+
+func TestLineBufferNormalizeWithFirst(t *testing.T) {
+	var buf LineBuffer
+	buf.Append("b", "", "a", "b", "c", "a")
+
+	buf.NormalizeWithFirst("z")
+
+	want := []string{"z", "a", "b", "c"}
+	if !reflect.DeepEqual(buf.Lines(), want) {
+		t.Fatalf("unexpected lines: got %v want %v", buf.Lines(), want)
+	}
+}
+
+func TestLineBufferNormalizeWithFirstExisting(t *testing.T) {
+	var buf LineBuffer
+	buf.Append("b", "a", "c", "a")
+
+	buf.NormalizeWithFirst("b")
+
+	want := []string{"b", "a", "c"}
+	if !reflect.DeepEqual(buf.Lines(), want) {
+		t.Fatalf("unexpected lines: got %v want %v", buf.Lines(), want)
+	}
+}
+
+func TestLineBufferNormalizeWithFirstEmpty(t *testing.T) {
+	var buf LineBuffer
+	buf.Append("b", "", "a", "b", "c")
+
+	buf.NormalizeWithFirst("")
 
 	want := []string{"a", "b", "c"}
 	if !reflect.DeepEqual(buf.Lines(), want) {

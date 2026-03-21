@@ -26,12 +26,20 @@ func (buf *LineBuffer) Append(lines ...string) {
 	buf.lines = append(buf.lines, lines...)
 }
 
+// Contains reports whether the line already exists in the buffer.
+func (buf *LineBuffer) Contains(line string) bool {
+	for _, cmp := range buf.lines {
+		if cmp == line {
+			return true
+		}
+	}
+	return false
+}
+
 // Ensure appends the line only if it is not already present.
 func (buf *LineBuffer) Ensure(line string) {
-	for _, cmp := range buf.lines {
-		if line == cmp {
-			return
-		}
+	if buf.Contains(line) {
+		return
 	}
 	buf.lines = append(buf.lines, line)
 }
@@ -80,6 +88,33 @@ func (buf *LineBuffer) Unique() {
 func (buf *LineBuffer) Normalize() {
 	buf.Unique()
 	buf.Sort()
+}
+
+// NormalizeWithFirst removes duplicate and empty lines, places first at the
+// beginning if it is not empty, and sorts all remaining lines behind it.
+func (buf *LineBuffer) NormalizeWithFirst(first string) {
+	seen := make(map[string]struct{}, len(buf.lines)+1)
+	out := make([]string, 0, len(buf.lines)+1)
+
+	if first != "" {
+		seen[first] = struct{}{}
+		out = append(out, first)
+	}
+
+	rest := make([]string, 0, len(buf.lines))
+	for _, line := range buf.lines {
+		if line == "" {
+			continue
+		}
+		if _, ok := seen[line]; ok {
+			continue
+		}
+		seen[line] = struct{}{}
+		rest = append(rest, line)
+	}
+
+	sort.Strings(rest)
+	buf.lines = append(out, rest...)
 }
 
 // IsEqual reports whether both buffers contain exactly the same lines

@@ -2,7 +2,7 @@ package config
 
 import (
 	"crypto/tls"
-	"fmt"
+	"net"
 
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
@@ -12,37 +12,51 @@ const (
 	DefaultTimeout = 10
 )
 
-// Config contains the persistent server plus runtime-only helpers.
+// Config contains the persistent server configuration plus runtime-only helpers.
 type Config struct {
 	// Persistent production server configuration.
 	Server
 
 	// Concrete baseline for this server (Ubuntu version etc.).
-	Baseline *Baseline `json:"-"`
+	Baseline *Baseline
 
-	// Products - all downloadable assets.
-	Products []Product `json:"-"`
+	// Products contains all downloadable assets.
+	Products []Product
 
-	// Common runtime flags
-	Verbose bool `json:"-"`
-	Force   bool `json:"-"`
-	Delete  bool `json:"-"`
-	SkipDNS bool `json:"-"`
-	SkipMX  bool `json:"-"`
-	logger  *utils.Logger
+	// Common runtime flags.
+	Verbose bool
+	Force   bool
+	Delete  bool
+	SkipDNS bool
+	SkipMX  bool
 
-	// Connection to the production server
-	Port    string    `json:"-"`
-	Conn    *tls.Conn `json:"-"`
-	Timeout int       `json:"-"`
+	// Logger used for Info, Debug and Error output.
+	logger Logger
+
+	// Connection to the production server.
+	Port    string
+	Conn    *tls.Conn
+	Timeout int
+
+	// File handling helpers.
+	loadFile func(name string) ([]byte, error)
+	loadJSON func(name string, v any) error
+	saveFile func(name string, data []byte) error
+	saveJSON func(name string, v any) error
+
+	// Function calls with side effects.
+	lookupIP   func(host string) ([]net.IP, error)
+	dhParams   func(bits int) ([]byte, error)
+	rsaKeyPair func(fqdn string) ([]byte, []byte, error)
+	runShell   func(commands []string) ([]byte, error)
+	runCommand func(name string, args ...string) ([]byte, error)
 }
 
 // ReadConfig loads and initializes a server configuration.
-// Platform and Options can be injected for testing.
 func ReadConfig(c *cli.Context) (*Config, error) {
 	cfg := &Config{}
 
-	// The persistent server configuration must exist, created by 'gdt setup'.
+	// The persistent server configuration must exist, created by "gdt setup".
 	err := utils.LoadJSON(utils.ConfigFile, &cfg.Server)
 	if err != nil {
 		return nil, err
@@ -69,49 +83,5 @@ func ReadConfig(c *cli.Context) (*Config, error) {
 
 // Save writes the persistent server configuration.
 func (cfg *Config) Save() error {
-	return utils.SaveJSON(utils.ConfigFile, &cfg.Server)
-}
-
-// Logging outout, controlled by verbosity.
-func (cfg *Config) Info(args ...any) {
-	if cfg != nil && cfg.Logger != nil {
-		cfg.Logger.Info(args...)
-	}
-}
-
-func (cfg *Config) Infof(fmt string, args ...any) {
-	if cfg != nil && cfg.Logger != nil {
-		cfg.Logger.Infof(fmt, args...)
-	}
-}
-
-func (cfg *Config) Debug(args ...any) {
-	if cfg != nil && cfg.Logger != nil && cfg.Verbose {
-		cfg.Logger.Debug(args...)
-	}
-}
-
-func (cfg *Config) Debugf(fmt string, args ...any) {
-	if cfg != nil && cfg.Logger != nil && cfg.Verbose {
-		cfg.Logger.Debugf(fmt, args...)
-	}
-}
-
-func (cfg *Config) Error(args ...any) {
-	if cfg != nil && cfg.Logger != nil {
-		cfg.Logger.Error(args...)
-	}
-}
-
-func (cfg *Config) Errorf(fmt string, args ...any) {
-	if cfg != nil && cfg.Logger != nil {
-		cfg.Logger.Errorf(fmt, args...)
-	}
-}
-
-func (cfg *Config) RsyncFlags() string {
-	if cfg.Verbose {
-		return "-avz"
-	}
-	return "-avzq"
+	return cfg.SaveJSON(utils.ConfigFile, &cfg.Server)
 }

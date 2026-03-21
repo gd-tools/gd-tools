@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gd-tools/gd-tools/acme"
+	"github.com/gd-tools/gd-tools/utils"
 	"github.com/go-acme/lego/v4/certificate"
 )
 
@@ -23,14 +24,16 @@ var (
 	RenewalTime = 30 * 24 * time.Hour
 )
 
+// EnsureCertificate writes a certificate with the domain as first line.
 func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 	if domain == "" {
 		return fmt.Errorf("missing domain in certificate request")
 	}
 	force := cfg.Force
 
-	sans = UniqueSortedStrings(sans)
-	wantDomains := UniqueSortedStrings(append([]string{domain}, sans...))
+	var wantDomains utils.LineBuffer
+	wantDomains.Append(sans...)
+	wantDomains.NormalizeWithFirst(domain)
 
 	baseDir := filepath.Join(ACMECertDir, domain)
 	fullchainPath := filepath.Join(baseDir, "fullchain.pem")
@@ -49,21 +52,21 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 				return err
 			}
 
-			gotDomains, err := ExtractSANList(fullchain)
+			gotDomains, err := ExtractSANList(domain, fullchain)
 			if err != nil {
 				return err
 			}
 
-			if !EqualStrings(gotDomains, wantDomains) {
-				cfg.Sayf("certificate SANs changed, requesting new")
+			if !wantDomains.IsEqual(gotDomains) {
+				cfg.Infof("certificate SANs changed, requesting new")
 				force = true
 			} else if time.Until(validUntil) <= 30*24*time.Hour {
-				cfg.Sayf("certificate expires soon on %s, requesting new", validUntil.Format("2006-01-02"))
+				cfg.Infof("certificate expires soon on %s, requesting new", validUntil.Format("2006-01-02"))
 				force = true
 			} else {
-				cfg.Sayf("certificate valid until %s: %s",
+				cfg.Infof("certificate valid until %s: %s",
 					validUntil.Format("2006-01-02"),
-					strings.Join(gotDomains, " "),
+					strings.Join(gotDomains.Lines(), " "),
 				)
 				return nil
 			}
@@ -82,11 +85,11 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 	if cfg.HetznerToken != "" {
 		os.Setenv("HETZNER_API_TOKEN", cfg.HetznerToken)
 		defer os.Unsetenv("HETZNER_API_TOKEN")
-		resource, err = acme.GetHetznerCertificate(wantDomains, cfg.SysAdmin, key)
+		resource, err = acme.GetHetznerCertificate(wantDomains.Lines(), cfg.SysAdmin, key)
 	} else if cfg.IonosToken != "" {
 		os.Setenv("IONOS_API_KEY", cfg.IonosToken)
 		defer os.Unsetenv("IONOS_API_KEY")
-		resource, err = acme.GetIonosCertificate(wantDomains, cfg.SysAdmin, key)
+		resource, err = acme.GetIonosCertificate(wantDomains.Lines(), cfg.SysAdmin, key)
 	}
 	// add other providers here TODO Cloudflare
 
@@ -121,20 +124,20 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 		return err
 	}
 
-	gotDomains, err := ExtractSANList(resource.Certificate)
+	gotDomains, err := ExtractSANList(domain, resource.Certificate)
 	if err != nil {
 		return err
 	}
 
-	cfg.Sayf("certificate valid until %s: %s",
+	cfg.Infof("certificate valid until %s: %s",
 		validUntil.Format("2006-01-02"),
-		strings.Join(gotDomains, " "),
+		strings.Join(gotDomains.Lines(), " "),
 	)
 
 	return nil
 }
 
-func ExtractSANList(fullchain []byte) ([]string, error) {
+func ExtractSANList(domain string, fullchain []byte) (*utils.LineBuffer, error) {
 	var certBlock *pem.Block
 	rest := fullchain
 
@@ -153,51 +156,11 @@ func ExtractSANList(fullchain []byte) ([]string, error) {
 		return nil, fmt.Errorf("unable to parse certificate: %w", err)
 	}
 
-	names := make([]string, 0, len(cert.DNSNames)+1)
-	if cert.Subject.CommonName != "" {
-		names = append(names, cert.Subject.CommonName)
-	}
-	names = append(names, cert.DNSNames...)
+	var gotDomains utils.LineBuffer
+	gotDomains.Append(cert.DNSNames...)
+	gotDomains.NormalizeWithFirst(domain) // will add if not present
 
-	return UniqueSortedStrings(names), nil
-}
-
-func ExtractSANs(fullchain []byte) (string, error) {
-	names, err := ExtractSANList(fullchain)
-	if err != nil {
-		return "", err
-	}
-	return strings.Join(names, " "), nil
-}
-
-func UniqueSortedStrings(in []string) []string {
-	m := make(map[string]struct{}, len(in))
-	for _, s := range in {
-		if s == "" {
-			continue
-		}
-		m[s] = struct{}{}
-	}
-
-	out := make([]string, 0, len(m))
-	for s := range m {
-		out = append(out, s)
-	}
-
-	sort.Strings(out)
-	return out
-}
-
-func EqualStrings(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
+	return &gotDomains, nil
 }
 
 func ReadValidUntil(pemBytes []byte) (time.Time, error) {
