@@ -17,6 +17,17 @@ func (cfg *Config) MkdirAll(path string, perm os.FileMode) error {
 	return os.MkdirAll(path, perm)
 }
 
+// Chdir sets the current working directory.
+// In tests, this can be overridden via cfg.chdir.
+func (cfg *Config) Chdir(path string) error {
+	if cfg != nil {
+		if fn := cfg.chdir; fn != nil {
+			return fn(path)
+		}
+	}
+	return os.Chdir(path)
+}
+
 // Setenv sets an environment variable.
 // In tests, this can be overridden via cfg.setenv.
 func (cfg *Config) Setenv(key, value string) error {

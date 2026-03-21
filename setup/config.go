@@ -1,25 +1,24 @@
 package setup
 
 import (
+	"github.com/gd-tools/gd-tools/agent"
 	"github.com/gd-tools/gd-tools/config"
-	"github.com/gd-tools/gd-tools/platform"
-	"github.com/gd-tools/gd-tools/server"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
 
 // buildConfig creates the initial server config from CLI flags and identity defaults.
-func buildConfig(c *cli.Context, pf *platform.Platform, id *utils.Identity, host, domain string) config.Config {
+func buildConfig(c *cli.Context, id *utils.Identity, baseline, host, domain string) config.Config {
 	cfg := config.Config{
-		Verbose: c.Bool("verbose"),
+		Verbose:      c.Bool("verbose"),
+		BaselineName: baseline,
 	}
-	cfg.BaselineName = pf.Baseline.Name
 
 	// Values for the operating system environment.
 	if c.IsSet("swap-size") {
 		cfg.SwapSize = c.String("swap-size")
 	}
-	addMounts(&cfg, c, pf)
+	addMounts(&cfg, c)
 
 	// Values that are taken from Identity.
 	cfg.TimeZone = id.TimeZone
@@ -61,9 +60,9 @@ func buildConfig(c *cli.Context, pf *platform.Platform, id *utils.Identity, host
 	// Last but not least: provider credentials.
 	cfg.Spambarrier = c.String("spambarrier")
 	cfg.UbuntuPro = c.String("ubuntu-pro")
+	cfg.CloudflareToken = c.String("cloudflare-dns")
 	cfg.HetznerToken = c.String("hetzner-dns")
 	cfg.IonosToken = c.String("ionos-dns")
-	cfg.CloudflareToken = c.String("cloudflare-dns")
 
 	// Initialize the "unique DNS names" system.
 	cfg.UsedFQDNs = []string{cfg.FQDN()}
@@ -72,12 +71,12 @@ func buildConfig(c *cli.Context, pf *platform.Platform, id *utils.Identity, host
 }
 
 // addMounts adds optional storage mounts from CLI flags.
-func addMounts(cfg *config.Config, c *cli.Context, pf *platform.Platform) {
+func addMounts(cfg *config.Config, c *cli.Context) {
 	if volume := c.String("hetzner-volume"); volume != "" {
 		cfg.Mounts = append(cfg.Mounts, server.Mount{
 			Provider: "hetzner",
 			ID:       volume,
-			Path:     pf.ToolsPath(),
+			Path:     agent.ToolsPath(),
 		})
 	}
 }

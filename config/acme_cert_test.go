@@ -1,152 +1,314 @@
 package config
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-acme/lego/v4/certificate"
 )
 
-func TestUniqueSortedStrings(t *testing.T) {
-	got := UniqueSortedStrings([]string{
-		"mail.example.org",
-		"",
-		"example.org",
-		"mail.example.org",
-		"smtp.example.org",
-	})
+func sprintf(format string, args ...any) string {
+	return fmt.Sprintf(format, args...)
+}
 
-	want := []string{
-		"example.org",
-		"mail.example.org",
-		"smtp.example.org",
+func makeTestCertificatePEM(t *testing.T, commonName string, dnsNames []string, notAfter time.Time) []byte {
+	t.Helper()
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("GenerateKey failed: %v", err)
 	}
 
-	if !EqualStrings(got, want) {
-		t.Fatalf("got %#v want %#v", got, want)
+	serial, err := rand.Int(rand.Reader, big.NewInt(1<<62))
+	if err != nil {
+		t.Fatalf("serial failed: %v", err)
+	}
+
+	tpl := &x509.Certificate{
+		SerialNumber: serial,
+		Subject: pkix.Name{
+			CommonName: commonName,
+		},
+		NotBefore:             time.Now().Add(-1 * time.Hour).UTC(),
+		NotAfter:              notAfter.UTC(),
+		DNSNames:              dnsNames,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, tpl, tpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("CreateCertificate failed: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: der}); err != nil {
+		t.Fatalf("pem.Encode failed: %v", err)
+	}
+
+	return buf.Bytes()
+}
+
+func TestReadValidUntil(t *testing.T) {
+	want := time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC)
+	pemBytes := makeTestCertificatePEM(t, "example.org", []string{"example.org", "www.example.org"}, want)
+
+	got, err := ReadValidUntil(pemBytes)
+	if err != nil {
+		t.Fatalf("ReadValidUntil returned error: %v", err)
+	}
+
+	if !got.Equal(want.Round(0)) {
+		t.Fatalf("unexpected NotAfter: got %v want %v", got, want.Round(0))
 	}
 }
 
-func TestEqualStrings(t *testing.T) {
-	if !EqualStrings([]string{"a", "b"}, []string{"a", "b"}) {
-		t.Fatal("expected equal slices")
-	}
-
-	if EqualStrings([]string{"a"}, []string{"a", "b"}) {
-		t.Fatal("expected different slices by length")
-	}
-
-	if EqualStrings([]string{"a", "b"}, []string{"b", "a"}) {
-		t.Fatal("expected different slices by order")
+func TestReadValidUntilNoCertificate(t *testing.T) {
+	_, err := ReadValidUntil([]byte("not a certificate"))
+	if err == nil {
+		t.Fatal("expected error for invalid pem data")
 	}
 }
 
 func TestExtractSANList(t *testing.T) {
-	pemBytes, notAfter := mustTestCertificatePEM(t,
+	pemBytes := makeTestCertificatePEM(
+		t,
 		"example.org",
-		[]string{"imap.example.org", "smtp.example.org"},
+		[]string{"www.example.org", "example.org", "api.example.org"},
+		time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC),
 	)
 
-	got, err := ExtractSANList(pemBytes)
+	got, err := ExtractSANList("example.org", pemBytes)
 	if err != nil {
-		t.Fatalf("ExtractSANList() returned error: %v", err)
+		t.Fatalf("ExtractSANList returned error: %v", err)
 	}
 
-	want := []string{
-		"example.org",
-		"imap.example.org",
-		"smtp.example.org",
+	want := []string{"example.org", "api.example.org", "www.example.org"}
+	if !reflect.DeepEqual(got.Lines(), want) {
+		t.Fatalf("unexpected SAN list:\n got: %#v\nwant: %#v", got.Lines(), want)
 	}
+}
 
-	if !EqualStrings(got, want) {
-		t.Fatalf("got %#v want %#v", got, want)
-	}
+func TestExtractSANListAddsDomainIfMissing(t *testing.T) {
+	pemBytes := makeTestCertificatePEM(
+		t,
+		"ignored-cn.example.org",
+		[]string{"www.example.org"},
+		time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC),
+	)
 
-	validUntil, err := ReadValidUntil(pemBytes)
+	got, err := ExtractSANList("example.org", pemBytes)
 	if err != nil {
-		t.Fatalf("ReadValidUntil() returned error: %v", err)
+		t.Fatalf("ExtractSANList returned error: %v", err)
 	}
 
-	if !validUntil.Equal(notAfter.UTC().Round(0)) {
-		t.Fatalf("got %v want %v", validUntil, notAfter.UTC().Round(0))
+	want := []string{"example.org", "www.example.org"}
+	if !reflect.DeepEqual(got.Lines(), want) {
+		t.Fatalf("unexpected SAN list:\n got: %#v\nwant: %#v", got.Lines(), want)
 	}
 }
 
 func TestExtractSANListInvalidPEM(t *testing.T) {
-	_, err := ExtractSANList([]byte("not a pem"))
+	_, err := ExtractSANList("example.org", []byte("broken"))
 	if err == nil {
-		t.Fatal("expected error for invalid pem")
+		t.Fatal("expected error for invalid pem data")
 	}
 }
 
-func TestReadValidUntilInvalidPEM(t *testing.T) {
-	_, err := ReadValidUntil([]byte("not a pem"))
-	if err == nil {
-		t.Fatal("expected error for invalid pem")
-	}
-}
-
-func TestExtractSANs(t *testing.T) {
-	pemBytes, _ := mustTestCertificatePEM(t,
-		"example.org",
-		[]string{"smtp.example.org", "imap.example.org"},
+func TestEnsureCertificateReusesExistingValidCertificate(t *testing.T) {
+	domain := "example.org"
+	fullchain := makeTestCertificatePEM(
+		t,
+		domain,
+		[]string{domain, "www.example.org"},
+		time.Now().Add(90*24*time.Hour).UTC(),
 	)
 
-	got, err := ExtractSANs(pemBytes)
-	if err != nil {
-		t.Fatalf("ExtractSANs() returned error: %v", err)
-	}
+	cfg := &Config{}
 
-	wantParts := []string{
-		"example.org",
-		"imap.example.org",
-		"smtp.example.org",
-	}
-
-	for _, part := range wantParts {
-		if !strings.Contains(got, part) {
-			t.Fatalf("missing %q in %q", part, got)
+	loadCalls := 0
+	cfg.loadFile = func(name string) ([]byte, error) {
+		loadCalls++
+		switch filepath.Base(name) {
+		case "fullchain.pem":
+			return fullchain, nil
+		case "privkey.pem":
+			return []byte("key"), nil
+		case "issuer.pem":
+			return []byte("issuer"), nil
+		default:
+			t.Fatalf("unexpected LoadFile path: %s", name)
+			return nil, nil
 		}
+	}
+
+	var infoLines []string
+	cfg.infof = func(format string, args ...any) {
+		infoLines = append(infoLines, sprintf(format, args...))
+	}
+
+	calledProvider := false
+	cfg.getPrivateKey = func(name string) (any, error) {
+		t.Fatalf("GetPrivateKey must not be called when cert is reused")
+		return nil, nil
+	}
+	cfg.getHetznerCertificate = func(domains []string, email string, key any) (*certificate.Resource, error) {
+		calledProvider = true
+		return nil, nil
+	}
+
+	err := cfg.EnsureCertificate(domain, "www.example.org")
+	if err != nil {
+		t.Fatalf("EnsureCertificate returned error: %v", err)
+	}
+
+	if calledProvider {
+		t.Fatal("provider must not be called for reusable certificate")
+	}
+
+	if loadCalls != 3 {
+		t.Fatalf("unexpected LoadFile count: got %d want 3", loadCalls)
+	}
+
+	if len(infoLines) == 0 {
+		t.Fatal("expected info log for reused certificate")
 	}
 }
 
-func mustTestCertificatePEM(t *testing.T, commonName string, dnsNames []string) ([]byte, time.Time) {
-	t.Helper()
+func TestEnsureCertificateRequestsNewWhenSANChanged(t *testing.T) {
+	domain := "example.org"
+	fullchain := makeTestCertificatePEM(
+		t,
+		domain,
+		[]string{domain, "old.example.org"},
+		time.Now().Add(90*24*time.Hour).UTC(),
+	)
 
-	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	cfg := &Config{
+		HetznerToken: "token",
+		SysAdmin:     "admin@example.org",
+	}
+
+	cfg.loadFile = func(name string) ([]byte, error) {
+		switch filepath.Base(name) {
+		case "fullchain.pem":
+			return fullchain, nil
+		case "privkey.pem":
+			return []byte("key"), nil
+		case "issuer.pem":
+			return []byte("issuer"), nil
+		default:
+			t.Fatalf("unexpected LoadFile path: %s", name)
+			return nil, nil
+		}
+	}
+
+	cfg.getPrivateKey = func(name string) (any, error) {
+		return "private-key", nil
+	}
+
+	cfg.setenv = func(key, value string) error {
+		if key != "HETZNER_API_TOKEN" || value != "token" {
+			t.Fatalf("unexpected Setenv: %s=%s", key, value)
+		}
+		return nil
+	}
+	cfg.unsetenv = func(key string) error {
+		if key != "HETZNER_API_TOKEN" {
+			t.Fatalf("unexpected Unsetenv key: %s", key)
+		}
+		return nil
+	}
+
+	calledDomains := []string(nil)
+	cfg.getHetznerCertificate = func(domains []string, email string, key any) (*certificate.Resource, error) {
+		calledDomains = append([]string{}, domains...)
+
+		return &certificate.Resource{
+			Certificate:       makeTestCertificatePEM(t, domain, []string{domain, "www.example.org"}, time.Now().Add(90*24*time.Hour)),
+			PrivateKey:        []byte("new-private-key"),
+			IssuerCertificate: []byte("new-issuer"),
+		}, nil
+	}
+
+	var mkdirPath string
+	cfg.mkdirAll = func(path string, perm os.FileMode) error {
+		mkdirPath = path
+		return nil
+	}
+
+	saved := map[string][]byte{}
+	cfg.saveFile = func(name string, data []byte) error {
+		saved[name] = append([]byte{}, data...)
+		return nil
+	}
+
+	err := cfg.EnsureCertificate(domain, "www.example.org")
 	if err != nil {
-		t.Fatalf("rsa.GenerateKey() failed: %v", err)
+		t.Fatalf("EnsureCertificate returned error: %v", err)
 	}
 
-	notAfter := time.Now().UTC().Add(90 * 24 * time.Hour).Round(0)
-
-	tpl := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject: pkix.Name{
-			CommonName: commonName,
-		},
-		NotBefore:             time.Now().UTC().Add(-1 * time.Hour),
-		NotAfter:              notAfter,
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
-		DNSNames:              dnsNames,
+	wantDomains := []string{"example.org", "www.example.org"}
+	if !reflect.DeepEqual(calledDomains, wantDomains) {
+		t.Fatalf("unexpected requested domains:\n got: %#v\nwant: %#v", calledDomains, wantDomains)
 	}
 
-	der, err := x509.CreateCertificate(rand.Reader, tpl, tpl, &priv.PublicKey, priv)
-	if err != nil {
-		t.Fatalf("x509.CreateCertificate() failed: %v", err)
+	if mkdirPath != filepath.Join(ACMECertDir, domain) {
+		t.Fatalf("unexpected mkdir path: %q", mkdirPath)
 	}
 
-	pemBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: der,
-	})
+	if len(saved) != 3 {
+		t.Fatalf("expected 3 saved files, got %d", len(saved))
+	}
+}
 
-	return pemBytes, notAfter
+func TestEnsureCertificateFailsWithoutProvider(t *testing.T) {
+	domain := "example.org"
+	fullchain := makeTestCertificatePEM(
+		t,
+		domain,
+		[]string{domain},
+		time.Now().Add(5*24*time.Hour).UTC(),
+	)
+
+	cfg := &Config{}
+
+	cfg.loadFile = func(name string) ([]byte, error) {
+		switch filepath.Base(name) {
+		case "fullchain.pem":
+			return fullchain, nil
+		case "privkey.pem":
+			return []byte("key"), nil
+		case "issuer.pem":
+			return []byte("issuer"), nil
+		default:
+			t.Fatalf("unexpected LoadFile path: %s", name)
+			return nil, nil
+		}
+	}
+
+	cfg.getPrivateKey = func(name string) (any, error) {
+		return "private-key", nil
+	}
+
+	err := cfg.EnsureCertificate(domain)
+	if err == nil {
+		t.Fatal("expected error when no provider is configured")
+	}
+
+	if !strings.Contains(err.Error(), "missing provider") {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }

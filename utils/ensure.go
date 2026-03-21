@@ -11,16 +11,16 @@ const (
 	ConfigFile = "config.json"
 )
 
-// EnsureHostDir ensures that the current working directory represents
-// a gd-tools host directory.
+// EnsureServerDir ensures that the current working directory represents
+// a gd-tools production server directory.
 //
-// A host directory is identified by the presence of a config.json file.
-func EnsureHostDir() error {
+// A server directory is identified by the presence of a config.json file.
+func EnsureServerDir() error {
 	if _, err := os.Stat(ConfigFile); err == nil {
 		return nil
 	}
 	return fmt.Errorf(
-		"this command must be executed from a host directory (config.json not found)",
+		"this command must be executed from a server directory (config.json not found)",
 	)
 }
 
@@ -64,21 +64,21 @@ func EnsureBaseDir() error {
 	)
 }
 
-// EnsureBaseOrHostDir allows execution either from the gd-tools base
-// directory (or any of its subdirectories) or from a host directory.
+// EnsureBaseOrServerDir allows execution either from the gd-tools base
+// directory (or any of its subdirectories) or from a server directory.
 //
 // This is useful for commands like 'list' that can operate globally
-// or on a single host.
-func EnsureBaseOrHostDir() error {
+// or on a single server.
+func EnsureBaseOrServerDir() error {
 	if err := EnsureBaseDir(); err == nil {
 		return nil
 	}
-	if err := EnsureHostDir(); err == nil {
+	if err := EnsureServerDir(); err == nil {
 		return nil
 	}
 
 	return fmt.Errorf(
 		"command must be executed either from the gd-tools base directory " +
-			"(GD_TOOLS_BASE) or from a host directory (config.json present)",
+			"(GD_TOOLS_BASE) or from a server directory (config.json present)",
 	)
 }

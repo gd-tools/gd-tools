@@ -42,9 +42,9 @@ func TestRenderSQL(t *testing.T) {
 	}
 }
 
-func TestRenderLines(t *testing.T) {
+func TestRenderList(t *testing.T) {
 
-	lines, err := RenderLines("test/lines.txt", "#", nil)
+	lines, err := RenderList("test/lines.txt", "#", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

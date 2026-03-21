@@ -20,27 +20,19 @@ func saveServer(cfg *config.Config) error {
 	fqdn := cfg.FQDN()
 	configPath := filepath.Join(fqdn, utils.ConfigFile)
 
-	if _, err := os.Stat(configPath); err == nil {
+	if _, err := cfg.LoadFile(configPath); err == nil {
 		return fmt.Errorf("server %s exists - will not overwrite", fqdn)
 	}
 
-	khContent, khErr := os.ReadFile("known_hosts")
-
-	if err := os.Mkdir(fqdn, 0o755); err != nil {
+	if err := cfg.MkdirAll(fqdn, 0o755); err != nil {
 		return err
 	}
-	if err := os.Chdir(fqdn); err != nil {
+	if err := cfg.Chdir(fqdn); err != nil {
 		return err
 	}
 
 	if err := cfg.EnsureCA(); err != nil {
 		return err
-	}
-
-	if khErr == nil {
-		if err := os.WriteFile("known_hosts", khContent, 0o600); err != nil {
-			return fmt.Errorf("failed to write known_hosts: %w", err)
-		}
 	}
 
 	if _, _, err := cfg.RSAKeyPair(fqdn); err != nil {
@@ -51,7 +43,7 @@ func saveServer(cfg *config.Config) error {
 		return err
 	}
 
-	if err := os.MkdirAll(config.ACME_Cert_Dir, 0o755); err != nil {
+	if err := cfg.MkdirAll(config.ACMECertDir, 0755); err != nil {
 		return err
 	}
 

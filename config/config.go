@@ -43,6 +43,7 @@ type Config struct {
 
 	// File handling helpers.
 	mkdirAll func(path string, perm os.FileMode) error
+	chdir    func(path string) error
 	setenv   func(key, value string) error
 	unsetenv func(key string) error
 	loadFile func(name string) ([]byte, error)
@@ -52,9 +53,9 @@ type Config struct {
 
 	// Template rendering from the gdt binary.
 	render     func(name string, data any) ([]byte, error)
-	renderJSON func(name string, data any, v any) error {
-	renderSQL  func(name string, data any) ([]string, error) {
-	renderList func(name, comment string, data any) ([]string, error) {
+	renderJSON func(name string, data any, v any) error
+	renderSQL  func(name string, data any) ([]string, error)
+	renderList func(name, comment string, data any) ([]string, error)
 
 	// Function calls with side effects.
 	lookupIP   func(host string) ([]net.IP, error)

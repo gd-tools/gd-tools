@@ -3,7 +3,7 @@
 VERSION   := $(shell git describe --tags --always 2>/dev/null || echo "dev")
 
 SRC       := $(shell find . -name '*.go')
-TEMPLATES := $(shell find config/templates/ -type f)
+TEMPLATES := $(shell find render/templates/ -type f)
 
 .PHONY: all gdt gd-tools gd-occ gd-wp-cli clean test completion pull push
 

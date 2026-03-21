@@ -40,9 +40,9 @@ type Server struct {
 	Spambarrier string `json:"spambarrier,omitempty"`
 	UbuntuPro   string `json:"ubuntu_pro,omitempty"`
 
+	CloudflareToken string `json:"cloudflare_token,omitempty"`
 	HetznerToken    string `json:"hetzner_token,omitempty"`
 	IonosToken      string `json:"ionos_token,omitempty"`
-	CloudflareToken string `json:"cloudflare_token,omitempty"`
 }
 
 func (srv *Server) FQDN() string {
