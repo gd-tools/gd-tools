@@ -1,140 +1,49 @@
 package config
 
 import (
-	"bufio"
-	"bytes"
-	"embed"
-	"encoding/json"
-	"fmt"
-	"strings"
-	"text/template"
+	"github.com/gd-tools/gd-tools/render"
 )
 
-//go:embed templates
-var templateFS embed.FS
-
-func load(name string) ([]byte, error) {
-	return templateFS.ReadFile("templates/" + name)
-}
-
 // Render loads a template from the gdt binary.
-func Render(name string, data any) ([]byte, error) {
-	content, err := load(name)
-	if err != nil {
-		return nil, err
+// In tests, this can be overridden via cfg.render.
+func (cfg *Config) Render(name string, data any) ([]byte, error) {
+	if cfg != nil {
+		if fn := cfg.render; fn != nil {
+			return fn(name, data)
+		}
 	}
-
-	tmpl, err := template.New(name).Parse(string(content))
-	if err != nil {
-		return nil, err
-	}
-
-	var result bytes.Buffer
-
-	err = tmpl.Execute(&result, data)
-	if err != nil {
-		return nil, err
-	}
-
-	return result.Bytes(), nil
+	return render.Render(name, data)
 }
 
 // RenderJSON loads a JSON template from the gdt binary.
-func RenderJSON(name string, data any, v any) error {
-	content, err := Render(name, data)
-	if err != nil {
-		return err
+// In tests, this can be overridden via cfg.renderJSON.
+func (cfg *Config) RenderJSON(name string, data any, v any) error {
+	if cfg != nil {
+		if fn := cfg.renderJSON; fn != nil {
+			return fn(name, data, v)
+		}
 	}
-
-	if err := json.Unmarshal(content, v); err != nil {
-		return fmt.Errorf("unmarshal rendered json %s: %w", name, err)
-	}
-
-	return nil
+	return render.RenderJSON(name, data, v)
 }
 
 // RenderSQL loads SQL code from the gdt binary.
-func RenderSQL(name string, data any) ([]string, error) {
-	content, err := Render(name, data)
-	if err != nil {
-		return nil, err
-	}
-
-	var stmts []string
-	var buf strings.Builder
-
-	inSingle := false
-	inDouble := false
-
-	for _, r := range string(content) {
-		switch r {
-		case '\'':
-			if !inDouble {
-				inSingle = !inSingle
-			}
-		case '"':
-			if !inSingle {
-				inDouble = !inDouble
-			}
-		case ';':
-			if !inSingle && !inDouble {
-				stmt := strings.TrimSpace(buf.String())
-				if stmt != "" {
-					stmts = append(stmts, normalizeSQL(stmt))
-				}
-
-				buf.Reset()
-				continue
-			}
+// In tests, this can be overridden via cfg.renderSQL.
+func (cfg *Config) RenderSQL(name string, data any) ([]string, error) {
+	if cfg != nil {
+		if fn := cfg.renderSQL; fn != nil {
+			return fn(name, data)
 		}
-
-		buf.WriteRune(r)
 	}
-
-	stmt := strings.TrimSpace(buf.String())
-	if stmt != "" {
-		stmts = append(stmts, normalizeSQL(stmt))
-	}
-
-	return stmts, nil
-}
-
-func normalizeSQL(sql string) string {
-	words := strings.Fields(sql)
-	return strings.Join(words, " ")
+	return render.RenderSQL(name, data)
 }
 
 // RenderList loads a textual list from the gdt binary.
-// Where comment is usually something like '#'.
-func RenderList(name, comment string, data any) ([]string, error) {
-	content, err := Render(name, data)
-	if err != nil {
-		return nil, err
-	}
-
-	reader := bytes.NewReader(content)
-	scanner := bufio.NewScanner(reader)
-
-	var lines []string
-
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-
-		if line == "" {
-			continue
+// In tests, this can be overridden via cfg.renderList.
+func (cfg *Config) RenderList(name, comment string, data any) ([]string, error) {
+	if cfg != nil {
+		if fn := cfg.renderList; fn != nil {
+			return fn(name, comment, data)
 		}
-
-		if comment != "" && strings.HasPrefix(line, comment) {
-			continue
-		}
-
-		lines = append(lines, line)
 	}
-
-	err = scanner.Err()
-	if err != nil {
-		return nil, err
-	}
-
-	return lines, nil
+	return render.RenderList(name, comment, data)
 }

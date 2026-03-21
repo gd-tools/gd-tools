@@ -6,50 +6,6 @@ import (
 	"github.com/gd-tools/gd-tools/utils"
 )
 
-// LoadFile reads a file from disk.
-// In tests, this can be overridden via cfg.loadFile.
-func (cfg *Config) LoadFile(name string) ([]byte, error) {
-	if cfg != nil {
-		if fn := cfg.loadFile; fn != nil {
-			return fn(name)
-		}
-	}
-	return utils.LoadFile(name)
-}
-
-// LoadJSON reads a JSON file into the given structure.
-// In tests, this can be overridden via cfg.loadJSON.
-func (cfg *Config) LoadJSON(name string, v any) error {
-	if cfg != nil {
-		if fn := cfg.loadJSON; fn != nil {
-			return fn(name, v)
-		}
-	}
-	return utils.LoadJSON(name, v)
-}
-
-// SaveFile writes raw data to a file.
-// In tests, this can be overridden via cfg.saveFile.
-func (cfg *Config) SaveFile(name string, data []byte) error {
-	if cfg != nil {
-		if fn := cfg.saveFile; fn != nil {
-			return fn(name, data)
-		}
-	}
-	return utils.SaveFile(name, data)
-}
-
-// SaveJSON writes a structure as JSON to disk.
-// In tests, this can be overridden via cfg.saveJSON.
-func (cfg *Config) SaveJSON(name string, v any) error {
-	if cfg != nil {
-		if fn := cfg.saveJSON; fn != nil {
-			return fn(name, v)
-		}
-	}
-	return utils.SaveJSON(name, v)
-}
-
 // LookupIP resolves a hostname to IP addresses.
 // In tests, this can be overridden via cfg.lookupIP.
 func (cfg *Config) LookupIP(host string) ([]net.IP, error) {

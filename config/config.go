@@ -1,10 +1,13 @@
 package config
 
 import (
+	"crypto"
 	"crypto/tls"
 	"net"
+	"os"
 
 	"github.com/gd-tools/gd-tools/utils"
+	"github.com/go-acme/lego/v4/certificate"
 	"github.com/urfave/cli/v2"
 )
 
@@ -39,10 +42,19 @@ type Config struct {
 	Timeout int
 
 	// File handling helpers.
+	mkdirAll func(path string, perm os.FileMode) error
+	setenv   func(key, value string) error
+	unsetenv func(key string) error
 	loadFile func(name string) ([]byte, error)
 	loadJSON func(name string, v any) error
 	saveFile func(name string, data []byte) error
 	saveJSON func(name string, v any) error
+
+	// Template rendering from the gdt binary.
+	render     func(name string, data any) ([]byte, error)
+	renderJSON func(name string, data any, v any) error {
+	renderSQL  func(name string, data any) ([]string, error) {
+	renderList func(name, comment string, data any) ([]string, error) {
 
 	// Function calls with side effects.
 	lookupIP   func(host string) ([]net.IP, error)
@@ -50,6 +62,12 @@ type Config struct {
 	rsaKeyPair func(fqdn string) ([]byte, []byte, error)
 	runShell   func(commands []string) ([]byte, error)
 	runCommand func(name string, args ...string) ([]byte, error)
+
+	// ACME helpers.
+	getPrivateKey            func(path string) (crypto.PrivateKey, error)
+	getCloudflareCertificate func(domains []string, email string, key crypto.PrivateKey) (*certificate.Resource, error)
+	getHetznerCertificate    func(domains []string, email string, key crypto.PrivateKey) (*certificate.Resource, error)
+	getIonosCertificate      func(domains []string, email string, key crypto.PrivateKey) (*certificate.Resource, error)
 }
 
 // ReadConfig loads and initializes a server configuration.

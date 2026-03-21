@@ -1,238 +1,27 @@
 package config
 
 import (
-	"bytes"
 	"errors"
 	"net"
-	"os"
-	"path/filepath"
-	"reflect"
+	"strings"
 	"testing"
 )
 
-func TestConfigLoadFile_UsesInjectedFunction(t *testing.T) {
-	cfg := &Config{}
-	want := []byte("mock-data")
-
+func TestConfigLookupIPOverride(t *testing.T) {
 	called := false
-	cfg.loadFile = func(name string) ([]byte, error) {
-		called = true
-		if name != "test.txt" {
-			t.Fatalf("unexpected name: %q", name)
-		}
-		return want, nil
-	}
-
-	got, err := cfg.LoadFile("test.txt")
-	if err != nil {
-		t.Fatalf("LoadFile returned error: %v", err)
-	}
-	if !called {
-		t.Fatal("expected injected loadFile to be called")
-	}
-	if !bytes.Equal(got, want) {
-		t.Fatalf("unexpected data: got %q want %q", got, want)
-	}
-}
-
-func TestConfigLoadFile_Fallback(t *testing.T) {
-	tmp := t.TempDir()
-	path := filepath.Join(tmp, "test.txt")
-
-	want := []byte("hello\n")
-	if err := os.WriteFile(path, want, 0600); err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := &Config{}
-	got, err := cfg.LoadFile(path)
-	if err != nil {
-		t.Fatalf("LoadFile returned error: %v", err)
-	}
-	if !bytes.Equal(got, want) {
-		t.Fatalf("unexpected data: got %q want %q", got, want)
-	}
-}
-
-func TestConfigLoadJSON_UsesInjectedFunction(t *testing.T) {
-	type sample struct {
-		Name string `json:"name"`
-	}
-
-	cfg := &Config{}
-	called := false
-
-	cfg.loadJSON = func(name string, v any) error {
-		called = true
-		if name != "test.json" {
-			t.Fatalf("unexpected name: %q", name)
-		}
-		ptr, ok := v.(*sample)
-		if !ok {
-			t.Fatalf("unexpected target type: %T", v)
-		}
-		ptr.Name = "mock"
-		return nil
-	}
-
-	var got sample
-	err := cfg.LoadJSON("test.json", &got)
-	if err != nil {
-		t.Fatalf("LoadJSON returned error: %v", err)
-	}
-	if !called {
-		t.Fatal("expected injected loadJSON to be called")
-	}
-	if got.Name != "mock" {
-		t.Fatalf("unexpected value: %+v", got)
-	}
-}
-
-func TestConfigLoadJSON_Fallback(t *testing.T) {
-	type sample struct {
-		Name string `json:"name"`
-	}
-
-	tmp := t.TempDir()
-	path := filepath.Join(tmp, "test.json")
-
-	if err := os.WriteFile(path, []byte(`{"name":"real"}`), 0600); err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := &Config{}
-	var got sample
-
-	err := cfg.LoadJSON(path, &got)
-	if err != nil {
-		t.Fatalf("LoadJSON returned error: %v", err)
-	}
-	if got.Name != "real" {
-		t.Fatalf("unexpected value: %+v", got)
-	}
-}
-
-func TestConfigSaveFile_UsesInjectedFunction(t *testing.T) {
-	cfg := &Config{}
-	called := false
-
-	cfg.saveFile = func(name string, data []byte) error {
-		called = true
-		if name != "out.txt" {
-			t.Fatalf("unexpected name: %q", name)
-		}
-		if string(data) != "abc" {
-			t.Fatalf("unexpected data: %q", data)
-		}
-		return nil
-	}
-
-	err := cfg.SaveFile("out.txt", []byte("abc"))
-	if err != nil {
-		t.Fatalf("SaveFile returned error: %v", err)
-	}
-	if !called {
-		t.Fatal("expected injected saveFile to be called")
-	}
-}
-
-func TestConfigSaveFile_Fallback(t *testing.T) {
-	tmp := t.TempDir()
-	path := filepath.Join(tmp, "out.txt")
-
-	cfg := &Config{}
-	err := cfg.SaveFile(path, []byte("abc"))
-	if err != nil {
-		t.Fatalf("SaveFile returned error: %v", err)
-	}
-
-	got, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != "abc" {
-		t.Fatalf("unexpected file content: %q", got)
-	}
-}
-
-func TestConfigSaveJSON_UsesInjectedFunction(t *testing.T) {
-	type sample struct {
-		Name string `json:"name"`
-	}
-
-	cfg := &Config{}
-	called := false
-
-	cfg.saveJSON = func(name string, v any) error {
-		called = true
-		if name != "out.json" {
-			t.Fatalf("unexpected name: %q", name)
-		}
-		ptr, ok := v.(*sample)
-		if !ok {
-			t.Fatalf("unexpected value type: %T", v)
-		}
-		if ptr.Name != "mock" {
-			t.Fatalf("unexpected value: %+v", ptr)
-		}
-		return nil
-	}
-
-	err := cfg.SaveJSON("out.json", &sample{Name: "mock"})
-	if err != nil {
-		t.Fatalf("SaveJSON returned error: %v", err)
-	}
-	if !called {
-		t.Fatal("expected injected saveJSON to be called")
-	}
-}
-
-func TestConfigSaveJSON_Fallback(t *testing.T) {
-	type sample struct {
-		Name string `json:"name"`
-	}
-
-	tmp := t.TempDir()
-	path := filepath.Join(tmp, "out.json")
-
-	cfg := &Config{}
-	err := cfg.SaveJSON(path, &sample{Name: "real"})
-	if err != nil {
-		t.Fatalf("SaveJSON returned error: %v", err)
-	}
-
-	var got sample
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(data) == 0 {
-		t.Fatal("expected JSON file to be non-empty")
-	}
-
-	err = cfg.LoadJSON(path, &got)
-	if err != nil {
-		t.Fatalf("LoadJSON returned error: %v", err)
-	}
-	if got.Name != "real" {
-		t.Fatalf("unexpected value: %+v", got)
-	}
-}
-
-func TestConfigLookupIP_UsesInjectedFunction(t *testing.T) {
-	cfg := &Config{}
 	want := []net.IP{
-		net.ParseIP("127.0.0.1"),
-		net.ParseIP("::1"),
+		net.ParseIP("192.0.2.10"),
+		net.ParseIP("2001:db8::10"),
 	}
 
-	called := false
-	cfg.lookupIP = func(host string) ([]net.IP, error) {
-		called = true
-		if host != "example.test" {
-			t.Fatalf("unexpected host: %q", host)
-		}
-		return want, nil
+	cfg := &Config{
+		lookupIP: func(host string) ([]net.IP, error) {
+			called = true
+			if host != "example.test" {
+				t.Fatalf("unexpected host: got %q", host)
+			}
+			return want, nil
+		},
 	}
 
 	got, err := cfg.LookupIP("example.test")
@@ -240,24 +29,42 @@ func TestConfigLookupIP_UsesInjectedFunction(t *testing.T) {
 		t.Fatalf("LookupIP returned error: %v", err)
 	}
 	if !called {
-		t.Fatal("expected injected lookupIP to be called")
+		t.Fatal("expected override to be called")
 	}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("unexpected result: got %v want %v", got, want)
+	if len(got) != len(want) {
+		t.Fatalf("unexpected IP count: got %d want %d", len(got), len(want))
+	}
+	for i := range want {
+		if !got[i].Equal(want[i]) {
+			t.Fatalf("unexpected IP at index %d: got %v want %v", i, got[i], want[i])
+		}
 	}
 }
 
-func TestConfigDHParams_UsesInjectedFunction(t *testing.T) {
+func TestConfigLookupIPFallback(t *testing.T) {
 	cfg := &Config{}
-	want := []byte("dhparams")
 
+	got, err := cfg.LookupIP("localhost")
+	if err != nil {
+		t.Fatalf("LookupIP returned error: %v", err)
+	}
+	if len(got) == 0 {
+		t.Fatal("expected at least one IP for localhost")
+	}
+}
+
+func TestConfigDHParamsOverride(t *testing.T) {
 	called := false
-	cfg.dhParams = func(bits int) ([]byte, error) {
-		called = true
-		if bits != 2048 {
-			t.Fatalf("unexpected bits: %d", bits)
-		}
-		return want, nil
+	want := []byte("dhparams-data")
+
+	cfg := &Config{
+		dhParams: func(bits int) ([]byte, error) {
+			called = true
+			if bits != 2048 {
+				t.Fatalf("unexpected bits: got %d", bits)
+			}
+			return want, nil
+		},
 	}
 
 	got, err := cfg.DHParams(2048)
@@ -265,105 +72,137 @@ func TestConfigDHParams_UsesInjectedFunction(t *testing.T) {
 		t.Fatalf("DHParams returned error: %v", err)
 	}
 	if !called {
-		t.Fatal("expected injected dhParams to be called")
+		t.Fatal("expected override to be called")
 	}
-	if !bytes.Equal(got, want) {
-		t.Fatalf("unexpected result: got %q want %q", got, want)
+	if string(got) != string(want) {
+		t.Fatalf("unexpected result: got %q want %q", string(got), string(want))
 	}
 }
 
-func TestConfigRSAKeyPair_UsesInjectedFunction(t *testing.T) {
-	cfg := &Config{}
-	wantPub := []byte("pub")
-	wantKey := []byte("key")
-
+func TestConfigRSAKeyPairOverride(t *testing.T) {
 	called := false
-	cfg.rsaKeyPair = func(fqdn string) ([]byte, []byte, error) {
-		called = true
-		if fqdn != "prod.example.test" {
-			t.Fatalf("unexpected fqdn: %q", fqdn)
-		}
-		return wantPub, wantKey, nil
+	wantPriv := []byte("private-key")
+	wantPub := []byte("public-key")
+
+	cfg := &Config{
+		rsaKeyPair: func(fqdn string) ([]byte, []byte, error) {
+			called = true
+			if fqdn != "host.example.test" {
+				t.Fatalf("unexpected fqdn: got %q", fqdn)
+			}
+			return wantPriv, wantPub, nil
+		},
 	}
 
-	gotPub, gotKey, err := cfg.RSAKeyPair("prod.example.test")
+	gotPriv, gotPub, err := cfg.RSAKeyPair("host.example.test")
 	if err != nil {
 		t.Fatalf("RSAKeyPair returned error: %v", err)
 	}
 	if !called {
-		t.Fatal("expected injected rsaKeyPair to be called")
+		t.Fatal("expected override to be called")
 	}
-	if !bytes.Equal(gotPub, wantPub) {
-		t.Fatalf("unexpected public key: got %q want %q", gotPub, wantPub)
+	if string(gotPriv) != string(wantPriv) {
+		t.Fatalf("unexpected private key: got %q want %q", string(gotPriv), string(wantPriv))
 	}
-	if !bytes.Equal(gotKey, wantKey) {
-		t.Fatalf("unexpected private key: got %q want %q", gotKey, wantKey)
+	if string(gotPub) != string(wantPub) {
+		t.Fatalf("unexpected public key: got %q want %q", string(gotPub), string(wantPub))
 	}
 }
 
-func TestConfigRunShell_UsesInjectedFunction(t *testing.T) {
-	cfg := &Config{}
-	want := []byte("ok")
-
+func TestConfigRunShellOverride(t *testing.T) {
 	called := false
-	cfg.runShell = func(commands []string) ([]byte, error) {
-		called = true
-		if !reflect.DeepEqual(commands, []string{"echo a", "echo b"}) {
-			t.Fatalf("unexpected commands: %#v", commands)
-		}
-		return want, nil
+	want := []byte("override-output")
+
+	cfg := &Config{
+		runShell: func(commands []string) ([]byte, error) {
+			called = true
+			if len(commands) != 2 {
+				t.Fatalf("unexpected command count: got %d", len(commands))
+			}
+			if commands[0] != "echo one" || commands[1] != "echo two" {
+				t.Fatalf("unexpected commands: got %#v", commands)
+			}
+			return want, nil
+		},
 	}
 
-	got, err := cfg.RunShell([]string{"echo a", "echo b"})
+	got, err := cfg.RunShell([]string{"echo one", "echo two"})
 	if err != nil {
 		t.Fatalf("RunShell returned error: %v", err)
 	}
 	if !called {
-		t.Fatal("expected injected runShell to be called")
+		t.Fatal("expected override to be called")
 	}
-	if !bytes.Equal(got, want) {
-		t.Fatalf("unexpected result: got %q want %q", got, want)
+	if string(got) != string(want) {
+		t.Fatalf("unexpected output: got %q want %q", string(got), string(want))
 	}
 }
 
-func TestConfigRunCommand_UsesInjectedFunction(t *testing.T) {
+func TestConfigRunShellFallback(t *testing.T) {
 	cfg := &Config{}
-	want := []byte("ok")
 
-	called := false
-	cfg.runCommand = func(name string, args ...string) ([]byte, error) {
-		called = true
-		if name != "openssl" {
-			t.Fatalf("unexpected command: %q", name)
-		}
-		if !reflect.DeepEqual(args, []string{"version"}) {
-			t.Fatalf("unexpected args: %#v", args)
-		}
-		return want, nil
+	got, err := cfg.RunShell([]string{"printf 'hello'"})
+	if err != nil {
+		t.Fatalf("RunShell returned error: %v", err)
 	}
 
-	got, err := cfg.RunCommand("openssl", "version")
+	if strings.TrimSpace(string(got)) != "hello" {
+		t.Fatalf("unexpected output: got %q", string(got))
+	}
+}
+
+func TestConfigRunCommandOverride(t *testing.T) {
+	called := false
+	want := []byte("override-command")
+
+	cfg := &Config{
+		runCommand: func(name string, args ...string) ([]byte, error) {
+			called = true
+			if name != "printf" {
+				t.Fatalf("unexpected command name: got %q", name)
+			}
+			if len(args) != 1 || args[0] != "hello" {
+				t.Fatalf("unexpected args: got %#v", args)
+			}
+			return want, nil
+		},
+	}
+
+	got, err := cfg.RunCommand("printf", "hello")
 	if err != nil {
 		t.Fatalf("RunCommand returned error: %v", err)
 	}
 	if !called {
-		t.Fatal("expected injected runCommand to be called")
+		t.Fatal("expected override to be called")
 	}
-	if !bytes.Equal(got, want) {
-		t.Fatalf("unexpected result: got %q want %q", got, want)
+	if string(got) != string(want) {
+		t.Fatalf("unexpected output: got %q want %q", string(got), string(want))
 	}
 }
 
-func TestConfigRunCommand_PropagatesError(t *testing.T) {
+func TestConfigRunCommandFallback(t *testing.T) {
 	cfg := &Config{}
-	wantErr := errors.New("boom")
 
-	cfg.runCommand = func(name string, args ...string) ([]byte, error) {
-		return nil, wantErr
+	got, err := cfg.RunCommand("printf", "hello")
+	if err != nil {
+		t.Fatalf("RunCommand returned error: %v", err)
+	}
+	if string(got) != "hello" {
+		t.Fatalf("unexpected output: got %q want %q", string(got), "hello")
+	}
+}
+
+func TestConfigFunctionOverrideErrorIsReturned(t *testing.T) {
+	want := errors.New("boom")
+
+	cfg := &Config{
+		runCommand: func(name string, args ...string) ([]byte, error) {
+			return nil, want
+		},
 	}
 
-	_, err := cfg.RunCommand("openssl", "version")
-	if !errors.Is(err, wantErr) {
-		t.Fatalf("expected %v, got %v", wantErr, err)
+	_, err := cfg.RunCommand("false")
+	if !errors.Is(err, want) {
+		t.Fatalf("unexpected error: got %v want %v", err, want)
 	}
 }

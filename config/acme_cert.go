@@ -1,16 +1,15 @@
 package config
 
 import (
+	"crypto"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
-	"github.com/gd-tools/gd-tools/acme"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/go-acme/lego/v4/certificate"
 )
@@ -24,12 +23,13 @@ var (
 	RenewalTime = 30 * 24 * time.Hour
 )
 
-// EnsureCertificate writes a certificate with the domain as first line.
+// EnsureCertificate ensures that a certificate exists for the given domain and SANs.
+// It reuses an existing certificate if it is still valid, not close to expiry,
+// and its SAN set matches the requested domains.
 func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 	if domain == "" {
 		return fmt.Errorf("missing domain in certificate request")
 	}
-	force := cfg.Force
 
 	var wantDomains utils.LineBuffer
 	wantDomains.Append(sans...)
@@ -40,58 +40,80 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 	privkeyPath := filepath.Join(baseDir, "privkey.pem")
 	issuerPath := filepath.Join(baseDir, "issuer.pem")
 
-	// Issue new certificate also if expiry is near or SANs have changed.
-	if !force {
-		fullchain, err1 := os.ReadFile(fullchainPath)
-		_, err2 := os.ReadFile(privkeyPath)
-		_, err3 := os.ReadFile(issuerPath)
+	// Issue a new certificate if expiry is near or SANs have changed.
+	// Renew also if 'gdt cert' was called with --force.
+	fullchain, err1 := cfg.LoadFile(fullchainPath)
+	_, err2 := cfg.LoadFile(privkeyPath)
+	_, err3 := cfg.LoadFile(issuerPath)
 
-		if err1 == nil && err2 == nil && err3 == nil {
-			validUntil, err := ReadValidUntil(fullchain)
-			if err != nil {
-				return err
-			}
+	if err1 == nil && err2 == nil && err3 == nil {
+		validUntil, err := ReadValidUntil(fullchain)
+		if err != nil {
+			return err
+		}
 
-			gotDomains, err := ExtractSANList(domain, fullchain)
-			if err != nil {
-				return err
-			}
+		gotDomains, err := ExtractSANList(domain, fullchain)
+		if err != nil {
+			return err
+		}
 
-			if !wantDomains.IsEqual(gotDomains) {
-				cfg.Infof("certificate SANs changed, requesting new")
-				force = true
-			} else if time.Until(validUntil) <= 30*24*time.Hour {
-				cfg.Infof("certificate expires soon on %s, requesting new", validUntil.Format("2006-01-02"))
-				force = true
-			} else {
-				cfg.Infof("certificate valid until %s: %s",
-					validUntil.Format("2006-01-02"),
-					strings.Join(gotDomains.Lines(), " "),
-				)
-				return nil
-			}
+		if !wantDomains.IsEqual(gotDomains) {
+			cfg.Infof("certificate SANs changed, requesting new")
+		} else if time.Until(validUntil) <= RenewalTime {
+			cfg.Infof("certificate expires soon on %s, requesting new", validUntil.Format("2006-01-02"))
+		} else if cfg.Force {
+			// Fall through: 'gdt cert' was called with --force
 		} else {
-			force = true
+			cfg.Infof(
+				"certificate valid until %s: %s",
+				validUntil.Format("2006-01-02"),
+				strings.Join(gotDomains.Lines(), " "),
+			)
+			return nil
 		}
 	}
 
-	key, err := acme.GetPrivateKey(ACMEAccountKey)
+	key, err := cfg.GetPrivateKey(ACMEAccountKey)
 	if err != nil {
 		return err
 	}
 
 	var resource *certificate.Resource
 
-	if cfg.HetznerToken != "" {
-		os.Setenv("HETZNER_API_TOKEN", cfg.HetznerToken)
-		defer os.Unsetenv("HETZNER_API_TOKEN")
-		resource, err = acme.GetHetznerCertificate(wantDomains.Lines(), cfg.SysAdmin, key)
-	} else if cfg.IonosToken != "" {
-		os.Setenv("IONOS_API_KEY", cfg.IonosToken)
-		defer os.Unsetenv("IONOS_API_KEY")
-		resource, err = acme.GetIonosCertificate(wantDomains.Lines(), cfg.SysAdmin, key)
+	switch {
+	case cfg.CloudflareToken != "":
+		if err := cfg.Setenv("CF_DNS_API_TOKEN", cfg.CloudflareToken); err != nil {
+			return err
+		}
+		defer func() {
+			_ = cfg.Unsetenv("CF_DNS_API_TOKEN")
+		}()
+
+		resource, err = cfg.GetCloudflareCertificate(wantDomains.Lines(), cfg.SysAdmin, key)
+
+	case cfg.HetznerToken != "":
+		if err := cfg.Setenv("HETZNER_API_TOKEN", cfg.HetznerToken); err != nil {
+			return err
+		}
+		defer func() {
+			_ = cfg.Unsetenv("HETZNER_API_TOKEN")
+		}()
+
+		resource, err = cfg.GetHetznerCertificate(wantDomains.Lines(), cfg.SysAdmin, key)
+
+	case cfg.IonosToken != "":
+		if err := cfg.Setenv("IONOS_API_KEY", cfg.IonosToken); err != nil {
+			return err
+		}
+		defer func() {
+			_ = cfg.Unsetenv("IONOS_API_KEY")
+		}()
+
+		resource, err = cfg.GetIonosCertificate(wantDomains.Lines(), cfg.SysAdmin, key)
+
+	default:
+		resource = nil
 	}
-	// add other providers here TODO Cloudflare
 
 	if err != nil {
 		return err
@@ -100,22 +122,17 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 		return fmt.Errorf("missing provider for DNS-01 certificates")
 	}
 
-	if err := os.MkdirAll(baseDir, 0755); err != nil {
+	if err := cfg.MkdirAll(baseDir, 0755); err != nil {
 		return fmt.Errorf("failed to mkdir %s: %w", baseDir, err)
 	}
 
-	write := func(name string, data []byte) error {
-		path := filepath.Join(baseDir, name)
-		return os.WriteFile(path, data, 0644)
-	}
-
-	if err := write("fullchain.pem", resource.Certificate); err != nil {
+	if err := cfg.SaveFile(filepath.Join(baseDir, "fullchain.pem"), resource.Certificate); err != nil {
 		return err
 	}
-	if err := write("privkey.pem", resource.PrivateKey); err != nil {
+	if err := cfg.SaveFile(filepath.Join(baseDir, "privkey.pem"), resource.PrivateKey); err != nil {
 		return err
 	}
-	if err := write("issuer.pem", resource.IssuerCertificate); err != nil {
+	if err := cfg.SaveFile(filepath.Join(baseDir, "issuer.pem"), resource.IssuerCertificate); err != nil {
 		return err
 	}
 
@@ -129,7 +146,8 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 		return err
 	}
 
-	cfg.Infof("certificate valid until %s: %s",
+	cfg.Infof(
+		"certificate valid until %s: %s",
 		validUntil.Format("2006-01-02"),
 		strings.Join(gotDomains.Lines(), " "),
 	)
@@ -137,6 +155,8 @@ func (cfg *Config) EnsureCertificate(domain string, sans ...string) error {
 	return nil
 }
 
+// ExtractSANList extracts the DNS SAN list from the first certificate in a PEM chain.
+// The given domain is normalized as first entry and added if missing.
 func ExtractSANList(domain string, fullchain []byte) (*utils.LineBuffer, error) {
 	var certBlock *pem.Block
 	rest := fullchain
@@ -158,11 +178,12 @@ func ExtractSANList(domain string, fullchain []byte) (*utils.LineBuffer, error) 
 
 	var gotDomains utils.LineBuffer
 	gotDomains.Append(cert.DNSNames...)
-	gotDomains.NormalizeWithFirst(domain) // will add if not present
+	gotDomains.NormalizeWithFirst(domain)
 
 	return &gotDomains, nil
 }
 
+// ReadValidUntil returns the NotAfter timestamp of the first certificate found in PEM data.
 func ReadValidUntil(pemBytes []byte) (time.Time, error) {
 	var block *pem.Block
 	rest := pemBytes

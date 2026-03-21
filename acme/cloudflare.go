@@ -9,44 +9,44 @@ import (
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-acme/lego/v4/lego"
-	"github.com/go-acme/lego/v4/providers/dns/ionos"
+	"github.com/go-acme/lego/v4/providers/dns/cloudflare"
 	"github.com/go-acme/lego/v4/registration"
 )
 
-type IonosUser struct {
+type CloudflareUser struct {
 	Email        string
 	Registration *registration.Resource
 	key          crypto.PrivateKey
 }
 
-var IonosNameServers = []string{
+var CloudflareNameServers = []string{
+	"1.1.1.1:53", // Cloudflare
 	"8.8.8.8:53", // Google
-	"1.1.1.1:53", // Ionos
 }
 
-func (u *IonosUser) GetEmail() string {
+func (u *CloudflareUser) GetEmail() string {
 	return u.Email
 }
 
-func (u *IonosUser) GetRegistration() *registration.Resource {
+func (u *CloudflareUser) GetRegistration() *registration.Resource {
 	return u.Registration
 }
 
-func (u *IonosUser) GetPrivateKey() crypto.PrivateKey {
+func (u *CloudflareUser) GetPrivateKey() crypto.PrivateKey {
 	return u.key
 }
 
-// GetIonosCertificate uses lego and the IONOS DNS-01 challenge to create an ACME certificate.
+// GetCloudflareCertificate uses lego and the Cloudflare DNS-01 challenge to create an ACME certificate.
 // ACME is short for "Automatic Certificate Management Environment"
-func GetIonosCertificate(domains []string, email string, key crypto.PrivateKey) (*certificate.Resource, error) {
+func GetCloudflareCertificate(domains []string, email string, key crypto.PrivateKey) (*certificate.Resource, error) {
 	if len(domains) == 0 {
 		return nil, fmt.Errorf("missing domains in certificate request")
 	}
-	if os.Getenv("IONOS_API_KEY") == "" {
-		return nil, fmt.Errorf("missing IONOS_API_KEY environment variable")
+	if os.Getenv("CF_DNS_API_TOKEN") == "" {
+		return nil, fmt.Errorf("missing CF_DNS_API_TOKEN environment variable")
 	}
 
-	user := &IonosUser{
+	user := &CloudflareUser{
 		Email: email,
 		key:   key,
 	}
@@ -60,13 +60,13 @@ func GetIonosCertificate(domains []string, email string, key crypto.PrivateKey) 
 		return nil, fmt.Errorf("unable to create lego.NewClient: %w", err)
 	}
 
-	dnsProvider, err := ionos.NewDNSProvider()
+	dnsProvider, err := cloudflare.NewDNSProvider()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create ionos.NewDNSProvider: %w", err)
+		return nil, fmt.Errorf("failed to create cloudflare.NewDNSProvider: %w", err)
 	}
 
 	challengeOpts := []dns01.ChallengeOption{
-		dns01.CondOption(true, dns01.AddRecursiveNameservers(IonosNameServers)),
+		dns01.CondOption(true, dns01.AddRecursiveNameservers(CloudflareNameServers)),
 	}
 
 	if err := client.Challenge.SetDNS01Provider(dnsProvider, challengeOpts...); err != nil {
