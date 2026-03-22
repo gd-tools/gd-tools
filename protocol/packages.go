@@ -1,5 +1,9 @@
 package protocol
 
+// PackageList contains Ubuntu package names that should be installed.
+//
+// The package selection is defined by gdt. Applications do not extend this
+// list dynamically through the protocol.
 type PackageList struct {
 	Packages  []string `json:"packages,omitempty"`
 	DoUpgrade bool     `json:"do_upgrade"`
