@@ -3,6 +3,7 @@ package setup
 import (
 	"github.com/gd-tools/gd-tools/agent"
 	"github.com/gd-tools/gd-tools/config"
+	"github.com/gd-tools/gd-tools/protocol"
 	"github.com/gd-tools/gd-tools/utils"
 	"github.com/urfave/cli/v2"
 )
@@ -64,7 +65,7 @@ func buildConfig(c *cli.Context, id *utils.Identity, baseline, host, domain stri
 	cfg.HetznerToken = c.String("hetzner-dns")
 	cfg.IonosToken = c.String("ionos-dns")
 
-	// Initialize the "unique DNS names" system.
+	// Seed the "unique DNS names" container.
 	cfg.UsedFQDNs = []string{cfg.FQDN()}
 
 	return cfg
@@ -73,7 +74,7 @@ func buildConfig(c *cli.Context, id *utils.Identity, baseline, host, domain stri
 // addMounts adds optional storage mounts from CLI flags.
 func addMounts(cfg *config.Config, c *cli.Context) {
 	if volume := c.String("hetzner-volume"); volume != "" {
-		cfg.Mounts = append(cfg.Mounts, server.Mount{
+		cfg.Mounts = append(cfg.Mounts, protocol.Mount{
 			Provider: "hetzner",
 			ID:       volume,
 			Path:     agent.ToolsPath(),
