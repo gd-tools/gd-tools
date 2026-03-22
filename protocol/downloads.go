@@ -18,7 +18,7 @@ type Download struct {
 
 // MarkerPath returns the full marker path below root.
 // Marker is interpreted as a relative path inside Directory.
-// Return an empty string if Marker is not set.
+// Returns an empty string if Marker is not set.
 func (dl *Download) MarkerPath(root string) string {
 	if dl.Marker == "" {
 		return ""
@@ -29,10 +29,20 @@ func (dl *Download) MarkerPath(root string) string {
 	return filepath.Join(root, dl.Directory, dl.Marker)
 }
 
+// DownloadList contains download-related tasks.
 type DownloadList struct {
 	Downloads []*Download `json:"downloads,omitempty"`
 }
 
+// AddDownload adds a download task to the request.
+func (req *Request) AddDownload(download *Download) {
+	if req == nil || download == nil {
+		return
+	}
+	req.Downloads = append(req.Downloads, download)
+}
+
+// HasDownloadList reports whether the request contains download tasks.
 func (req *Request) HasDownloadList() bool {
 	if req == nil {
 		return false

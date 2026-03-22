@@ -1,13 +1,21 @@
 package protocol
 
+import (
+	"strings"
+)
+
 // ServiceList contains system services that should be restarted or reloaded.
 type ServiceList struct {
 	Services []string `json:"services,omitempty"`
 }
 
-// AddService adds a service to the request if it is non-empty and not already present.
+// AddService adds a service if it is non-empty and not already present.
 func (req *Request) AddService(service string) {
-	if req == nil || service == "" {
+	if req == nil {
+		return
+	}
+	service = strings.TrimSpace(service)
+	if service == "" {
 		return
 	}
 	for _, check := range req.Services {

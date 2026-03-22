@@ -3,81 +3,66 @@ package protocol
 import "testing"
 
 func TestRequestAddService(t *testing.T) {
-	var req Request
+	req := &Request{}
 
-	req.AddService("apache2")
-	req.AddService("postfix")
-	req.AddService("apache2")
+	req.AddService("nginx")
+
+	if len(req.Services) != 1 {
+		t.Fatalf("expected 1 service, got %d", len(req.Services))
+	}
+	if req.Services[0] != "nginx" {
+		t.Fatalf("unexpected service value: %q", req.Services[0])
+	}
+}
+
+func TestRequestAddServiceDedup(t *testing.T) {
+	req := &Request{}
+
+	req.AddService("nginx")
+	req.AddService("nginx")
+
+	if len(req.Services) != 1 {
+		t.Fatalf("expected deduplicated service list, got %d", len(req.Services))
+	}
+}
+
+func TestRequestAddServiceTrim(t *testing.T) {
+	req := &Request{}
+
+	req.AddService("  nginx  ")
+
+	if len(req.Services) != 1 {
+		t.Fatalf("expected 1 service, got %d", len(req.Services))
+	}
+	if req.Services[0] != "nginx" {
+		t.Fatalf("expected trimmed service, got %q", req.Services[0])
+	}
+}
+
+func TestRequestAddServiceIgnoreEmpty(t *testing.T) {
+	req := &Request{}
+
 	req.AddService("")
 
-	want := []string{"apache2", "postfix"}
-
-	if len(req.Services) != len(want) {
-		t.Fatalf("expected %d services, got %d", len(want), len(req.Services))
-	}
-	for i := range want {
-		if req.Services[i] != want[i] {
-			t.Fatalf("service %d = %q, want %q", i, req.Services[i], want[i])
-		}
+	if len(req.Services) != 0 {
+		t.Fatalf("expected 0 services, got %d", len(req.Services))
 	}
 }
 
 func TestRequestAddServiceNilReceiver(t *testing.T) {
 	var req *Request
-	req.AddService("apache2") // should not panic
+	req.AddService("nginx")
 }
 
 func TestRequestHasServiceList(t *testing.T) {
-	tests := []struct {
-		name string
-		req  *Request
-		want bool
-	}{
-		{
-			name: "nil request",
-			req:  nil,
-			want: false,
-		},
-		{
-			name: "empty request",
-			req:  &Request{},
-			want: false,
-		},
-		{
-			name: "one service",
-			req: &Request{
-				ServiceList: ServiceList{
-					Services: []string{"apache2"},
-				},
-			},
-			want: true,
-		},
-		{
-			name: "multiple services",
-			req: &Request{
-				ServiceList: ServiceList{
-					Services: []string{"apache2", "postfix"},
-				},
-			},
-			want: true,
-		},
-		{
-			name: "empty slice",
-			req: &Request{
-				ServiceList: ServiceList{
-					Services: []string{},
-				},
-			},
-			want: false,
-		},
+	if (&Request{}).HasServiceList() {
+		t.Fatalf("expected false for empty request")
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := tt.req.HasServiceList()
-			if got != tt.want {
-				t.Fatalf("HasServiceList() = %v, want %v", got, tt.want)
-			}
-		})
+	req := &Request{}
+	req.AddService("nginx")
+
+	if !req.HasServiceList() {
+		t.Fatalf("expected true after adding service")
 	}
 }

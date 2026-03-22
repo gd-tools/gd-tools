@@ -1,5 +1,7 @@
 package protocol
 
+import "strings"
+
 // User describes a system user.
 type User struct {
 	Name    string   `json:"name"`
@@ -21,6 +23,28 @@ type UserList struct {
 	Users []*User `json:"users,omitempty"`
 }
 
+// AddUser adds a user if it is not nil and not already present (by name).
+func (req *Request) AddUser(user *User) {
+	if req == nil || user == nil {
+		return
+	}
+
+	name := strings.TrimSpace(user.Name)
+	if name == "" {
+		return
+	}
+	user.Name = name
+
+	for _, check := range req.Users {
+		if check.Name == user.Name {
+			return
+		}
+	}
+
+	req.Users = append(req.Users, user)
+}
+
+// HasUserList reports whether the request contains at least one user entry.
 func (req *Request) HasUserList() bool {
 	if req == nil {
 		return false

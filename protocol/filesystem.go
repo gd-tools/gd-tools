@@ -23,6 +23,23 @@ type Filesystem struct {
 	Directories []*Directory `json:"directories,omitempty"`
 }
 
+// AddMount adds a mount point to the request.
+func (req *Request) AddMount(mount *Mount) {
+	if req == nil || mount == nil {
+		return
+	}
+	req.Mounts = append(req.Mounts, mount)
+}
+
+// AddDirectory adds a directory creation task to the request.
+func (req *Request) AddDirectory(directory *Directory) {
+	if req == nil || directory == nil {
+		return
+	}
+	req.Directories = append(req.Directories, directory)
+}
+
+// HasFilesystem reports whether the request contains mount or directory tasks.
 func (req *Request) HasFilesystem() bool {
 	if req == nil {
 		return false
