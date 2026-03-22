@@ -4,6 +4,7 @@ go 1.25.7
 
 require (
 	github.com/go-acme/lego/v4 v4.32.0
+	github.com/spf13/afero v1.11.0
 	github.com/tv42/zbase32 v0.0.0-20220222190657-f76a9fc892fa
 	github.com/urfave/cli/v2 v2.27.7
 	golang.org/x/crypto v0.48.0
